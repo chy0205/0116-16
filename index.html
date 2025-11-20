@@ -63,6 +63,42 @@
         }
 
         /* ============================================== */
+        /* === 選項佈局調整 (新增兩欄響應式佈局) === */
+        /* ============================================== */
+        /* 選項容器調整為響應式兩行佈局 (兩欄) */
+        .options {
+            display: flex;
+            flex-direction: column; /* 預設在手機上為單欄 (垂直堆疊) */
+            gap: 8px; /* 選項之間的垂直間距 */
+        }
+
+        /* 選項標籤樣式 */
+        .options label {
+            display: flex;
+            align-items: flex-start; /* 讓選項文字多行時也能對齊 */
+            /* 移除 margin-bottom: 8px; 因為已使用 gap */
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 5px;
+            transition: background-color 0.3s, transform 0.1s;
+            width: 100%; /* 手機上佔滿寬度 */
+        }
+        .options label:hover {
+            background-color: #e9e9e9;
+        }
+        
+        /* 螢幕寬度大於 640px (sm) 時，切換到兩欄佈局 */
+        @media (min-width: 640px) { 
+            .options {
+                flex-direction: row;
+                flex-wrap: wrap; 
+                gap: 16px; /* 調整兩欄之間的間距 (水平和垂直) */
+            }
+            .options label {
+                width: calc(50% - 8px); /* 50% 寬度，扣除一半的 gap (16px / 2 = 8px) */
+            }
+        }
+        /* ============================================== */
         /* === 原始樣式 (保持不變) === */
         /* ============================================== */
         
@@ -102,19 +138,7 @@
             border: 2px solid #388e3c;
             background-color: #e8f5e9;
         }
-        /* 選項標籤樣式 */
-        .options label {
-            display: flex;
-            align-items: flex-start; /* 讓選項文字多行時也能對齊 */
-            margin-bottom: 8px;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 5px;
-            transition: background-color 0.3s, transform 0.1s;
-        }
-        .options label:hover {
-            background-color: #e9e9e9;
-        }
+        
         .options input {
             margin-right: 10px;
             margin-top: 4px; /* 對齊文字基線 */
