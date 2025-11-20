@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>崇華十六期單頁全卷測驗</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 html2canvas 函式庫，用於將結果區塊轉換為圖片 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         /* ============================================== */
         /* === 整頁捲動與標準寬度設定 (變更為單頁模式) === */
@@ -154,6 +156,7 @@
             color: #d32f2f;
             font-weight: bold;
         }
+        /* 結果總結區塊的特殊樣式 */
         .result-box-summary {
             text-align: center;
             margin: 30px 0;
@@ -269,6 +272,14 @@
                 margin-bottom: 15px;
             }
         }
+        
+        /* 圖片儲存的目標區塊：確保有白色背景 */
+        #results-analysis {
+            /* 讓這個 wrapper 確保有白色背景 */
+            background-color: #fff; 
+            padding: 0; 
+            margin: 0;
+        }
 
     </style>
 </head>
@@ -297,16 +308,21 @@
             <button id="start-btn" onclick="startQuiz()" disabled>開始測驗</button>
         </div>
 
-        <!-- 測驗題目區塊 (所有題目一次顯示) -->
+        <!-- 測驗題目區塊 / 結果分析區塊 (所有題目一次顯示) -->
         <div id="quiz-container" class="content-area" style="display:none;">
-            <!-- 題目內容將在這裡動態載入 -->
+            <!-- 題目內容或結果分析將在這裡動態載入 -->
+            <div id="results-analysis">
+                <!-- 測驗題目或結果將在這裡 -->
+            </div>
             
             <!-- 送出按鈕將在題目載入後動態加入 -->
         </div>
+        
+        <!-- 移除靜態的 action-buttons-after-submit 區塊，改為動態插入到結果總結下方 -->
 
     </div>
 
-    <div id="message-box" role="alert"></div>
+    <div id="message-box" role="alert" class="hide-on-screenshot"></div>
 
     <script>
         // ==========================================================
@@ -324,9 +340,9 @@
         console.log('配置: TEAMS_SHEET_GID 讀取成功。');
 
         // 3. Google Apps Script 部署網址：
-        // **已更新為使用者提供的新網址**
+        // ⚠️ 已經更新為您提供的網址，修復 Failed to fetch 錯誤的關鍵！
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyr-t0LoE2p8Z92gVuhmCWEUNJ-1G8OJgJl1jkl-U6TzI3n_a9XgpxFlDYiRhahlTMLiA/exec'; 
-        console.log('配置: APPS_SCRIPT_URL (已更新):', APPS_SCRIPT_URL);
+        console.log('配置: APPS_SCRIPT_URL (重要: 請檢查此網址是否正確):', APPS_SCRIPT_URL);
 
         // 4. 測驗工作表 GID 對應：
         const QUIZ_GIDS = {
@@ -341,6 +357,9 @@
         const GOOGLE_SHEET_BASE_URL = `https://docs.google.com/spreadsheets/d/${SPREADSHEET_ID}/gviz/tq?tqx=out:json&gid=`;
         const TEAMS_SHEET_URL = `${GOOGLE_SHEET_BASE_URL}${TEAMS_SHEET_GID}`;
         console.log('計算: TEAMS_SHEET_URL:', TEAMS_SHEET_URL);
+        
+        // 截圖目標的唯一 ID (僅限結果總結區塊)
+        const SUMMARY_ID_FOR_CAPTURE = 'summary-for-screenshot';
 
         // ==========================================================
         // *** 應用程式狀態與 DOM 元素參考 ***
@@ -350,8 +369,8 @@
 
         const quizContainer = document.getElementById('quiz-container');
         const selectionContainer = document.getElementById('selection-container');
+        const resultsAnalysisDiv = document.getElementById('results-analysis'); // 結果內容的整體 wrapper
         
-        // 在單頁模式下，提交按鈕在渲染題目時動態加入
         let submitBtn = null; 
         
         let selectedQuizType = '';
@@ -403,23 +422,25 @@
         /** 輔助函式：帶有指數退避機制的 Fetch 請求。*/
         async function retryFetch(url, options, maxRetries = 3) {
             console.log(`[retryFetch] 嘗試連接 URL: ${url} (最大重試次數: ${maxRetries})`);
+            const fetchOptions = { ...options, mode: 'cors' }; // 確保 CORS 模式
             for (let i = 0; i < maxRetries; i++) {
                 const attempt = i + 1;
                 console.log(`[retryFetch] 嘗試 ${attempt}/${maxRetries}...`);
                 try {
-                    const response = await fetch(url, options);
+                    const response = await fetch(url, fetchOptions);
 
                     if (response.ok) {
                         console.log(`[retryFetch] 嘗試 ${attempt} 成功，HTTP 狀態碼: ${response.status}`);
                         return response;
                     }
                     
+                    // 即使收到非 2xx 狀態碼，如果是 Apps Script 回傳的錯誤，也需要重試
                     const errorDetails = `HTTP Error: ${response.status} ${response.statusText || ''}`;
                     console.warn(`[retryFetch] 嘗試 ${attempt} 失敗，非 2xx 狀態碼: ${errorDetails}`);
                     throw new Error(errorDetails);
 
                 } catch (error) {
-                    console.warn(`[retryFetch] 嘗試 ${attempt} 發生錯誤: ${error.message}`);
+                    console.warn(`[retryFetch] 嘗試 ${attempt} 發生錯誤: ${error.name}: ${error.message}`);
                     
                     if (i === maxRetries - 1) {
                         console.error('[retryFetch] 達到最大重試次數，拋出最終錯誤。');
@@ -437,7 +458,16 @@
         // ==========================================================
         /** 填充組別下拉選單。*/
         function populateGroups() {
+            const quizTypeSelect = document.getElementById('quiz-type-select');
             const groupSelect = document.getElementById('group-select');
+            const nameSelect = document.getElementById('name-select');
+            
+            // 安全檢查：確保所有元素都存在 (修復 TypeError)
+            if (!groupSelect || !quizTypeSelect || !nameSelect) {
+                console.error('[populateGroups] 無法找到所有必要的下拉選單元素，取消註冊事件。');
+                return; 
+            }
+
             while (groupSelect.options.length > 1) {
                 groupSelect.remove(1);
             }
@@ -450,9 +480,9 @@
             }
 
             // 註冊事件
-            document.getElementById('quiz-type-select').addEventListener('change', handleQuizTypeChange);
+            quizTypeSelect.addEventListener('change', handleQuizTypeChange);
             groupSelect.addEventListener('change', handleGroupChange);
-            document.getElementById('name-select').addEventListener('change', handleNameChange);
+            nameSelect.addEventListener('change', handleNameChange);
             
             groupSelect.disabled = false;
         }
@@ -542,7 +572,7 @@
             if (quizData.length > 0) {
                 renderAllQuestions();
             } else {
-                quizContainer.innerHTML = '<div class="loading-text" style="color:#d32f2f;">無法載入任何題目。</div>';
+                resultsAnalysisDiv.innerHTML = '<div class="loading-text" style="color:#d32f2f;">無法載入任何題目。</div>';
             }
         }
 
@@ -599,7 +629,7 @@
             
             // 顯示題目區塊
             quizContainer.style.display = 'block';
-            quizContainer.innerHTML = '<div class="loading-text text-center text-lg text-gray-600 p-8">正在從 Google 試算表載入題目...請稍候。</div>';
+            resultsAnalysisDiv.innerHTML = '<div class="loading-text text-center text-lg text-gray-600 p-8">正在從 Google 試算表載入題目...請稍候。</div>';
             
             // 清理狀態
             userAnswersState = {}; 
@@ -648,7 +678,6 @@
                     const optionsToRender = shuffleArray([...item.options]); 
 
                     optionsToRender.forEach((option) => {
-                        // 在單頁模式下，不從 state 恢復，依賴瀏覽器本身的狀態保持，但為確保一致性，這裡可以簡單渲染
                         optionsHTML += `
                             <label>
                                 <input type="${inputType}" name="${qId}" value="${option}"> 
@@ -677,13 +706,12 @@
 
             // 3. 加入提交按鈕和底部訊息
             allQuizHTML += `
-                <div class="submit-group">
+                <div class="submit-group" id="initial-submit-group">
                     <button id="submit-btn" onclick="submitAnswers()">送出答案 (共 ${totalQuestions} 題)</button>
                 </div>
-                <button id="restart-btn" onclick="resetQuiz()" class="mt-4 bg-blue-500 hover:bg-blue-600 shadow-blue-700 mx-auto" style="background-color: #007bff; box-shadow: 0 4px #0056b3; display: none;">重新測驗</button>
             `;
 
-            quizContainer.innerHTML = allQuizHTML;
+            resultsAnalysisDiv.innerHTML = allQuizHTML;
             
             // 取得提交按鈕的參考
             submitBtn = document.getElementById('submit-btn'); 
@@ -762,20 +790,30 @@
             try {
                 const response = await retryFetch(APPS_SCRIPT_URL, {
                     method: 'POST',
-                    mode: 'cors',
+                    // mode: 'cors' 已在 retryFetch 中確保
                     headers: {
                         'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' 
                     },
                     body: formBody
                 });
                 
-                const result = await response.json();
+                // 由於 Apps Script 通常返回 JSON，我們先嘗試解析 JSON
+                const result = await response.json(); 
+                
+                // Apps Script 後端預期回傳分數細項：
+                console.log('[sendAnswersToGoogleSheet] Apps Script 返回結果:', result);
+
                 return result;
 
             } catch (error) {
                 console.error('[sendAnswersToGoogleSheet] 致命錯誤: 傳送答案到 Apps Script 失敗:', error);
                 showMessage('致命錯誤: 傳送答案到 Apps Script 失敗。請檢查網址或 Apps Script 權限。', true);
-                return { status: 'error', message: `傳輸失敗或網路錯誤: ${error.message}`, score: 0, answersDetail: [] };
+                // 拋出包含 Apps Script 相關提示的錯誤，以供前端處理
+                return { 
+                    status: 'error', 
+                    message: `傳輸失敗或網路錯誤: ${error.message}。請確認 Apps Script 已正確部署且權限設定為「任何人」。`, 
+                    score: 0, answersDetail: [], mandatoryScore: 0, optionalScore: 0 
+                };
             }
         }
 
@@ -783,10 +821,10 @@
         async function submitAnswers() {
             console.log('--- [submitAnswers] 啟動答案提交流程 ---');
             
-            if (!submitBtn) {
-                submitBtn = document.getElementById('submit-btn'); // 再次嘗試取得
-            }
-            if (!submitBtn) {
+            submitBtn = document.getElementById('submit-btn'); // 確保取得按鈕參考
+            const initialSubmitGroup = document.getElementById('initial-submit-group');
+
+            if (!submitBtn || !initialSubmitGroup) {
                 showMessage('提交失敗：缺少必要的提交按鈕元件。', true);
                 return;
             }
@@ -803,15 +841,22 @@
             try {
                 submissionResult = await sendAnswersToGoogleSheet(submissionAnswers);
             } catch (error) {
-                submissionResult = { status: 'error', score: 0, answersDetail: [], message: '傳送失敗' };
+                // 如果 retryFetch 拋出錯誤，這裡會捕獲到
+                submissionResult = { status: 'error', score: 0, answersDetail: [], message: error.message, mandatoryScore: 0, optionalScore: 0 };
             }
 
             // 步驟 3: 處理 Apps Script 的響應結果
             if (submissionResult.status === 'success') {
                 showMessage(`答案提交成功！得分: ${submissionResult.score} 分。`, false);
                 
+                const mandatoryScore = submissionResult.mandatoryScore || 0;
+                const optionalScore = submissionResult.optionalScore || 0;
+                
+                // 隱藏初始提交按鈕群組
+                initialSubmitGroup.style.display = 'none';
+
                 // 顯示測驗結果和答案解析
-                displayQuizResults(submissionResult.answersDetail, submissionResult.score);
+                displayQuizResults(submissionResult.answersDetail, submissionResult.score, mandatoryScore, optionalScore);
 
             } else {
                 showMessage(`提交失敗: ${submissionResult.message}`, true);
@@ -822,136 +867,171 @@
             }
         }
 
-        /** 渲染結果總結和所有題目解析。*/
-        function displayQuizResults(answersDetail, finalScore) {
+        /**
+         * 渲染結果總結、操作按鈕和詳細解析。
+         */
+        function displayQuizResults(answersDetail, finalScore, mandatoryScore, optionalScore) {
             console.log('[displayQuizResults] 開始標註對錯並顯示答案解析。');
             let wrongQuestionsCount = 0;
             const wrongQuestionNumbers = [];
             
-            // 隱藏提交按鈕
-            submitBtn.style.display = 'none';
+            const quizTypeDisplay = document.getElementById('quiz-type-select').value;
             
-            // 1. 渲染結果總結區塊
-            const resultSummaryHTML = `
-                <div class="result-box-summary">
-                    <h2 class="text-3xl font-extrabold text-[#4CAF50]">測驗解析</h2>
-                    <p class="text-xl mt-2">姓名：<span class="font-bold">${selectedName}</span> | 組別：<span class="font-bold">${selectedGroup}</span></p>
-                    <p class="text-xl mt-2 mb-4">總得分: <span id="score" class="font-bold text-4xl text-[#388e3c]">${finalScore}</span> 分</p>
-                    <p id="wrong-questions" class="text-lg font-bold"></p>
-                    <p class="text-sm text-gray-500 italic mt-4">以下顯示所有題目及答案解析。請捲動查看。</p>
-                </div>
-            `;
-            
-            // 2. 遍歷並渲染所有帶有解析的題目
-            let analysisHTML = '';
-            
+            // 遍歷答案細節以計算錯題數和錯題號碼
             answersDetail.forEach((detail, index) => {
-                const item = quizData[index];
                 const qNum = index + 1;
-                const qId = `q${qNum}`;
-
-                // 標註對錯
-                const statusClass = detail.isCorrect ? 'correct-border' : 'incorrect-border';
                 if (!detail.isCorrect) {
                     wrongQuestionsCount++;
                     wrongQuestionNumbers.push(qNum);
                 }
-
-                // 反饋 HTML
-                const correctDisplay = Array.isArray(detail.correctAnswer) ? detail.correctAnswer.join(', ') : detail.correctAnswer;
-                const userDisplay = detail.userAnswer || '未作答';
-                const feedbackStatus = detail.isCorrect 
-                    ? `<span class="correct">✅ 正確！得分: +${detail.score} 分</span>`
-                    : `<span class="incorrect">❌ 錯誤！得分: +0 分</span>`;
-
-                const feedbackHTML = `
-                    <div class="answer-feedback mt-2 p-3 bg-gray-100 rounded">
-                        ${feedbackStatus}<br>
-                        <span style="font-size: 0.9em;">你的答案: <span class="incorrect">${userDisplay}</span></span><br>
-                        <span style="font-size: 0.9em;">正確答案: <span class="correct">${correctDisplay}</span></span>
-                    </div>
-                `;
-                
-                // *** 調整圖片尺寸與置中 (解析模式) ***
-                let imageHTML = '';
-                if (item.imageUrl) {
-                    imageHTML = `
-                        <div class="quiz-image-container">
-                            <img src="${item.imageUrl}" alt="題目圖片" class="quiz-image">
-                        </div>`;
-                }
-
-                // 選項 HTML (必須重新渲染並標註對錯，且禁用輸入)
-                let optionsHTML = '';
-                const bonusTag = item.isBonus ? '<span class="bonus-tag"></span>' : '';
-
-                if (item.type === 'single' || item.type === 'multiple') {
-                    const inputType = item.type === 'single' ? 'radio' : 'checkbox';
-                    const correctChoices = Array.isArray(detail.correctAnswer) ? detail.correctAnswer.map(a => a.trim()) : (detail.correctAnswer ? detail.correctAnswer.split(',').map(a => a.trim()) : []);
-                    const userChoices = detail.userAnswer.split(',').map(a => a.trim()).filter(a => a !== '未作答');
-
-                    // 這裡的選項順序是固定的，因為是顯示解析，讓使用者能對照正確答案
-                    item.options.forEach((option) => {
-                        const isCorrectOption = correctChoices.includes(option);
-                        const isUserChoice = userChoices.includes(option);
-                        
-                        let labelStyle = '';
-                        if (isCorrectOption) {
-                            labelStyle = 'background-color: #d4edda; border: 1px solid #c3e6cb;'; // 淺綠色標註正確答案
-                        }
-                        if (isUserChoice && !isCorrectOption) {
-                            labelStyle = 'background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24;'; // 淺紅色標註錯誤的作答
-                        } else if (isUserChoice && isCorrectOption) {
-                            labelStyle = 'background-color: #d4edda; border: 1px solid #c3e6cb;'; // 綠色標註正確的作答
-                        }
-                        
-                        optionsHTML += `
-                            <label style="${labelStyle}; border-radius: 5px;">
-                                <input type="${inputType}" name="${qId}" value="${option}" ${isUserChoice ? 'checked' : ''} disabled> 
-                                <span>${option}</span>
-                            </label>`;
-                    });
-                } else if (item.type === 'fill') {
-                     // 填空題沒有選項，只需顯示輸入框和答案
-                     optionsHTML = `<input type="text" class="fill-in-the-blank mt-2" value="${userDisplay}" disabled style="background-color: #eee; cursor: default;">`;
-                }
-                
-                // 組合完整的題目 HTML
-                analysisHTML += `
-                    <div class="question ${statusClass}" id="${qId}">
-                        <p class="text-xl font-medium">${qNum}. ${item.question} <span style="font-size: 0.8em; color: #888;">(${item.score}分)</span> ${bonusTag}</p>
-                        ${imageHTML}
-                        <div class="options">
-                            ${optionsHTML}
-                        </div>
-                        ${feedbackHTML}
-                    </div>
-                `;
             });
-            
-            // 3. 更新總結區的答錯訊息
+
+            // 準備答錯訊息
             const wrongMsg = wrongQuestionsCount > 0 
                 ? `本次測驗共答錯 ${wrongQuestionsCount} 題，題號為：${wrongQuestionNumbers.join('、')}` 
                 : '恭喜你！本次測驗全部答對！';
             
             const wrongMsgClass = wrongQuestionsCount > 0 ? 'text-red-700' : 'text-green-700';
-            
-            // 4. 重新組裝 quizContainer 內容
-            quizContainer.innerHTML = resultSummaryHTML + analysisHTML;
 
-            // 5. 插入答錯訊息和重新測驗按鈕
-            document.getElementById('wrong-questions').innerText = wrongMsg;
-            document.getElementById('wrong-questions').classList.add(wrongMsgClass);
+            // --- 區塊 1: 測驗解析總結 (用於截圖) ---
+            const resultSummaryHTML = `
+                <div class="result-box-summary" id="${SUMMARY_ID_FOR_CAPTURE}">
+                    <h2 class="text-3xl font-extrabold text-[#4CAF50]">測驗解析總結</h2>
+                    <p class="text-xl mt-2">組別：<span class="font-bold">${selectedGroup}</span> | 姓名：<span class="font-bold">${selectedName}</span> </p>
+                    
+                    <p class="text-lg mt-3 font-semibold">考卷類型: 隨堂 + ${quizTypeDisplay}</p>                    
+                    <p class="text-xl mb-4">總得分: <span id="score" class="font-bold text-4xl text-[#388e3c]">${finalScore}</span> 分</p>
+                    <p id="wrong-questions" class="text-lg font-bold ${wrongMsgClass}">${wrongMsg}</p>
+                </div>
+            `;
             
-            // 顯示重新測驗按鈕
-            const restartBtn = document.getElementById('restart-btn');
-            if (restartBtn) {
-                restartBtn.style.display = 'block'; 
-                quizContainer.appendChild(restartBtn); // 重新插入到 quizContainer 底部
-            }
+            // --- 區塊 2: 操作按鈕 (中間位置) ---
+            // 按鈕動態插入在總結和詳解之間
+            const actionButtonsHTML = `
+                <div id="action-buttons-after-submit" class="submit-group bg-white p-4 rounded-xl shadow-inner border-t border-b border-gray-100 mb-6 mt-4">
+                    <button id="save-image-btn" onclick="saveResultsAsImage()" class="bg-blue-600 hover:bg-blue-700 shadow-blue-800">儲存成績圖片 (僅總結)</button>
+                    <button id="restart-btn" onclick="resetQuiz()" class="bg-gray-500 hover:bg-gray-600 shadow-gray-700">重新測驗</button>
+                </div>
+            `;
+            
+            // --- 區塊 3: 詳細題目與答案解析 (網頁顯示) ---
+            let detailedAnalysisHTML = `
+                <div id="detailed-analysis" class="mt-8 border-t-2 border-gray-200 pt-8">
+                    <h2 class="text-2xl font-bold text-gray-800 mb-6">詳細題目與答案解析</h2>
+            `;
+
+            answersDetail.forEach((detail, index) => {
+                const question = quizData[index];
+                const qNum = index + 1;
+                const isCorrect = detail.isCorrect;
+                const resultClass = isCorrect ? 'correct-border' : 'incorrect-border';
+                const resultText = isCorrect ? '✓ 答對' : '✗ 答錯';
+                const resultColor = isCorrect ? 'text-green-600' : 'text-red-600';
+
+                // 圖片
+                let imageHTML = '';
+                if (question.imageUrl) {
+                    imageHTML = `
+                        <div class="quiz-image-container">
+                            <img src="${question.imageUrl}" alt="題目圖片" 
+                                 onerror="this.onerror=null; this.src='https://placehold.co/300x150/ffcccc/c00000?text=圖片載入失敗！';" 
+                                 class="quiz-image">
+                        </div>`;
+                }
+
+                detailedAnalysisHTML += `
+                    <div class="question ${resultClass} p-4 mb-6">
+                        <p class="text-xl font-medium mb-2">
+                            ${qNum}. ${question.question} 
+                            <span class="${resultColor} font-bold ml-2">(${resultText})</span>
+                            ${question.isBonus ? '<span class="bonus-tag"></span>' : ''}
+                        </p>
+                        ${imageHTML}
+                        
+                        <p class="mt-2 text-base">
+                            <span class="font-bold text-gray-700">你的回答:</span> 
+                            <span class="${isCorrect ? 'text-green-600' : 'text-red-600'}">
+                                ${detail.userAnswer || '未作答'}
+                            </span>
+                        </p>
+
+                        <p class="mt-1 text-base">
+                            <span class="font-bold text-gray-700">正確答案:</span> 
+                            <span class="correct">
+                                ${question.answer.join(', ')}
+                            </span>
+                        </p>
+                    </div>
+                `;
+            });
+
+            detailedAnalysisHTML += '</div>';
+
+            // 4. 組合所有結果區塊: 總結 + 按鈕 + 詳解
+            resultsAnalysisDiv.innerHTML = resultSummaryHTML + actionButtonsHTML + detailedAnalysisHTML;
 
             // 滾動到頁面頂部以查看結果總結
             window.scrollTo(0, 0); 
+        }
+
+        // ==========================================================
+        // *** 圖片儲存功能 (目標鎖定為 SUMMARY_ID_FOR_CAPTURE) ***
+        // ==========================================================
+
+        /** 將測驗結果總結區塊轉換為圖片並下載。
+         */
+        function saveResultsAsImage() {
+            // *** 關鍵變動：鎖定 SUMMARY_ID_FOR_CAPTURE 元素 ***
+            const targetElement = document.getElementById(SUMMARY_ID_FOR_CAPTURE); 
+            const saveBtn = document.getElementById('save-image-btn');
+
+            if (!targetElement) {
+                showMessage('錯誤：找不到總結截圖區域。', true);
+                return;
+            }
+
+            // 禁用按鈕，防止重複點擊
+            saveBtn.disabled = true;
+            saveBtn.innerText = '正在生成圖片...';
+
+            // html2canvas 核心調用
+            html2canvas(targetElement, {
+                scale: 2, // 提高解析度 (Retina 螢幕適用)
+                logging: false,
+                useCORS: true, // 如果題目有外部圖片，需要設定
+                backgroundColor: '#ffffff', // 確保截圖背景為白色
+            }).then(canvas => {
+                try {
+                    // 獲取圖片數據 URL
+                    const imageURL = canvas.toDataURL('image/png');
+                    
+                    // 創建一個虛擬的下載連結
+                    const a = document.createElement('a');
+                    const fileName = `${selectedGroup}_${selectedName}_${selectedQuizType}_成績.png`;
+                    a.href = imageURL;
+                    a.download = fileName;
+                    
+                    // 模擬點擊下載
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+
+                    showMessage(`成績圖片 (${fileName}) 已成功儲存！`);
+
+                } catch (error) {
+                    console.error('儲存圖片失敗:', error);
+                    showMessage('儲存圖片失敗。可能的原因：外部圖片跨域問題或瀏覽器限制。', true);
+                } finally {
+                    // 恢復按鈕狀態
+                    saveBtn.disabled = false;
+                    saveBtn.innerText = '儲存成績圖片 (僅總結)';
+                }
+            }).catch(error => {
+                console.error('HTML 轉 Canvas 失敗:', error);
+                showMessage('圖片生成失敗，請檢查控制台錯誤訊息。', true);
+                saveBtn.disabled = false;
+                saveBtn.innerText = '儲存成績圖片 (僅總結)';
+            });
         }
 
 
@@ -969,6 +1049,7 @@
             
             // 重設下拉選單的選擇
             document.getElementById('quiz-type-select').value = '';
+            // 由於 populateGroups 會重新填充 groupSelect，這裡只需清空 nameSelect
             document.getElementById('group-select').innerHTML = '<option value="" disabled selected>請選擇組別</option>';
             document.getElementById('name-select').innerHTML = '<option value="" disabled selected>請選擇姓名</option>';
 
@@ -978,7 +1059,7 @@
             document.getElementById('start-btn').disabled = true;
             
             // 清空並隱藏區塊
-            quizContainer.innerHTML = '';
+            resultsAnalysisDiv.innerHTML = '';
             quizContainer.style.display = 'none';
 
             // 顯示選擇介面
