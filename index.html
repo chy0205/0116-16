@@ -1620,6 +1620,11 @@
                     const latestValues = labels.map(l => r.latest[l] || 0);
                     const totalValues = labels.map(l => r.total[l] || 0);
 
+                    // 若重新載入統計表，一併更新底下的點名報告加分，使其同步
+                    if (targetSheetName && r.sheetName) {
+                        reloadAttendanceWithBonus(r.sheetName);
+                    }
+
                     if (bonusChartInstance) bonusChartInstance.destroy();
 
                     // 固定組別顏色 (對應 Dataset 1)
@@ -1729,6 +1734,21 @@
                     renderHomeworkReport();
                 } else toast("作業紀錄讀取失敗", true);
             } catch (e) { toast("網路連線異常", true); }
+        }
+
+        async function reloadAttendanceWithBonus(sheetName) {
+            if (!currentUser) return;
+            try {
+                const url = `${APPS_SCRIPT_URL}?action=getAttendanceReport&role=${encodeURIComponent(currentUser.role)}&group=${encodeURIComponent(currentUser.group)}&bonusSheetName=${encodeURIComponent(sheetName)}`;
+                const res = await fetch(url);
+                const r = await res.json();
+                if (r.success) {
+                    cachedSignedUsers = r.data || [];
+                    applyFilters(); // 重新渲染名單
+                }
+            } catch (e) {
+                console.error("Failed to reload attendance with bonus sheet", e);
+            }
         }
 
         function renderHomeworkReport() {
