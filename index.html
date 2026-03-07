@@ -745,7 +745,11 @@
             </div>
             <div id="bonus-stats-container" class="mb-10 bg-white p-6 rounded-3xl border shadow-sm">
                 <div class="flex justify-between items-center mb-4">
-                    <p id="bonus-sheet-name" class="text-[10px] text-slate-400 font-bold uppercase"></p>
+                    <div class="flex items-center gap-2">
+                        <p id="bonus-sheet-name" class="text-[10px] text-slate-400 font-bold uppercase"></p>
+                        <select id="bonus-sheet-select" onchange="loadBonusStats(this.value)"
+                            class="hidden text-xs p-1 border border-slate-200 rounded-lg outline-none text-indigo-600 bg-white shadow-sm font-bold"></select>
+                    </div>
                     <div class="flex gap-3">
                         <button onclick="downloadChart()" class="text-indigo-500 text-[10px] font-black">📥
                             下載長條圖</button>
@@ -1515,7 +1519,7 @@
                             <span class="status-dot ${dot}"></span>
                             <div class="flex flex-col">
                                 <span class="font-bold text-slate-700">${name}</span>
-                                ${sign && sign.pts !== undefined ? `<span class="text-[9px] font-black text-amber-500">🏆 累計加分：${sign.pts}</span>` : ''}
+                                ${sign && sign.pts !== undefined ? `<span class="text-[9px] font-black text-amber-500 block">🏆 當表加分：${sign.pts}</span><span class="text-[9px] font-black text-amber-600 block">🌟 全期總共：${sign.totalPts !== undefined ? sign.totalPts : sign.pts}</span>` : ''}
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
@@ -1588,14 +1592,29 @@
         }
 
         let bonusChartInstance = null;
-        async function loadBonusStats() {
+        async function loadBonusStats(targetSheetName = "") {
             const canvas = document.getElementById('bonusChart');
             if (!canvas) return;
             try {
-                const res = await fetch(`${APPS_SCRIPT_URL}?action=getBonusStats`);
+                const url = targetSheetName ? `${APPS_SCRIPT_URL}?action=getBonusStats&sheetName=${encodeURIComponent(targetSheetName)}` : `${APPS_SCRIPT_URL}?action=getBonusStats`;
+                const res = await fetch(url);
                 const r = await res.json();
                 if (r.success) {
-                    document.getElementById('bonus-sheet-name').innerText = r.sheetName ? `當前統計表：${r.sheetName}` : "尚未建立加分表";
+                    document.getElementById('bonus-sheet-name').innerText = r.sheetName ? `當前列表：` : "尚未建立加分表";
+
+                    const select = document.getElementById('bonus-sheet-select');
+                    if (r.availableSheets && r.availableSheets.length > 0) {
+                        select.classList.remove('hidden');
+                        // 僅當選項不同或為空時重新生成，避免影響當前選定狀態
+                        if (select.options.length !== r.availableSheets.length) {
+                            select.innerHTML = r.availableSheets.map(s => `<option value="${s}" ${s === r.sheetName ? 'selected' : ''}>${s.replace('加分_', '')}</option>`).join('');
+                        } else {
+                            select.value = r.sheetName; // 確保與伺服器回傳狀態一致
+                        }
+                    } else {
+                        select.classList.add('hidden');
+                    }
+
                     const ctx = canvas.getContext('2d');
                     const labels = r.labels;
                     const latestValues = labels.map(l => r.latest[l] || 0);
@@ -1620,7 +1639,7 @@
                             labels: labels,
                             datasets: [
                                 {
-                                    label: '最新各組分數',
+                                    label: '指定表累計積分',
                                     data: latestValues,
                                     backgroundColor: groupColors,
                                     borderRadius: 6,
@@ -1629,7 +1648,7 @@
                                     categoryPercentage: 0.6
                                 },
                                 {
-                                    label: '各組累計積分',
+                                    label: '全期總累計積分',
                                     data: totalValues,
                                     backgroundColor: '#cbd5e1', // 灰色
                                     borderRadius: 6,
