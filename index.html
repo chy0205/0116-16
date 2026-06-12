@@ -1,3 +1,6 @@
+//const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZ06Lm_lJk-A6Xs0GVFGdrtmrfA0GM-ALCuaaCCIcvK0V-5zLg27uiI70HwseSNfLCEA/exec';
+//const SPREADSHEET_ID = '1zgooij9pB4VIYGDti8QgbNu5VQVnd4Ke6UsYQnBrfsk';
+
 <!DOCTYPE html>
 <html lang="zh-Hant">
 
@@ -7,6 +10,7 @@
     <title>崇華十六期整合管理系統</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Inter:wght@400;600;800&display=swap');
@@ -577,7 +581,7 @@
                         </svg>
                     </div>
                     <div>
-                        <h2 class="text-2xl font-black text-slate-800">作業繳交</h2>
+                        <h2 class="text-2xl font-black text-slate-800">心得作業繳交</h2>
                         <p class="text-slate-500 text-xs font-bold">記錄您的學習成長與體悟</p>
                     </div>
                 </div>
@@ -604,10 +608,10 @@
                             class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl h-48 outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 leading-relaxed"></textarea>
                     </div>
 
-                    <div>
+                    <div id="homework-file-upload-area">
                         <label
                             class="text-[10px] text-slate-400 uppercase tracking-widest flex justify-between items-center ml-1 mb-1">
-                            <span>參考網址 / 雲端連結 (選填)</span>
+                            <span id="homework-file-label">參考網址 / 雲端連結 (選填)</span>
                             <!-- 作業專屬上傳按鈕 -->
                             <button id="homework-upload-btn"
                                 onclick="document.getElementById('homework-file-picker').click()"
@@ -619,14 +623,19 @@
                                 檔案上傳
                             </button>
                         </label>
-                        <input type="url" id="homework-url" oninput="updateUrlPreview()" placeholder="https://..."
-                            class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 mt-1">
-                        <div id="homework-url-preview" class="mt-2 ml-1 hidden">
-                            <a id="homework-url-link" href="#" target="_blank"
-                                class="text-indigo-600 font-black underline break-all flex items-center gap-1 text-[11px]">
-                                🔗 點擊驗證上傳檔案
-                            </a>
+                        <!-- 用來儲存所有 URL，以逗號隔開 -->
+                        <input type="hidden" id="homework-url">
+                        
+                        <!-- 手動輸入網址與新增網址按鈕 -->
+                        <div class="flex gap-2 mt-1" id="homework-url-input-container">
+                            <input type="url" id="homework-url-input" placeholder="手動貼上網址... (例如 https://...)"
+                                class="flex-1 p-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 text-slate-700 text-sm">
+                            <button onclick="addUrlFromInput()" class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 rounded-2xl text-xs font-black hover:bg-indigo-100 transition-all">新增</button>
                         </div>
+                        
+                        <!-- 已上傳/新增的檔案列表 -->
+                        <div id="homework-uploaded-files-list" class="space-y-2 mt-3"></div>
+                        
                         <input type="file" id="homework-file-picker" class="hidden"
                             onchange="handleHomeworkFileUpload(event)">
                     </div>
@@ -764,6 +773,12 @@
 
             <div class="mb-4 px-2 flex justify-between items-center">
                 <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">點名出席狀況</h3>
+                <button id="admin-region-report-btn" onclick="openRegionReportModal()"
+                    class="hidden bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    查看區域統計</button>
             </div>
             <div id="attendance-report-list" class="space-y-3 mb-10"></div>
 
@@ -1010,14 +1025,51 @@
         <div class="modal-content !max-w-2xl" onclick="event.stopPropagation()">
             <div class="flex justify-between items-center mb-6 border-b pb-4">
                 <h3 id="member-hw-title" class="text-xl font-black text-slate-800">學員作業紀錄</h3>
-                <button onclick="document.getElementById('member-hw-modal').style.display='none'" class="text-slate-400 hover:text-slate-600">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <button onclick="document.getElementById('member-hw-modal').style.display='none'"
+                    class="text-slate-400 hover:text-slate-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
+                        </path>
+                    </svg>
                 </button>
             </div>
             <div id="member-hw-list" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
                 <div class="text-center py-10 text-slate-300 font-bold italic">載入中...</div>
             </div>
             <button onclick="document.getElementById('member-hw-modal').style.display='none'"
+                class="w-full py-4 mt-8 bg-slate-100 rounded-2xl font-black text-slate-500">關閉視窗</button>
+        </div>
+    </div>
+
+    <div id="region-report-modal" class="modal !z-[2500]" onclick="closeRegionReportModal()">
+        <div class="modal-content !max-w-5xl" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <h3 class="text-xl font-black text-slate-800">區域出席統計表</h3>
+                <div class="flex items-center gap-2">
+                    <button onclick="loadRegionReport()" class="text-[10px] font-black text-slate-600 bg-slate-100 hover:bg-slate-200 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        重整
+                    </button>
+                    <button onclick="downloadRegionReport('jpg')" class="text-[10px] font-black text-white bg-emerald-500 hover:bg-emerald-600 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        JPG
+                    </button>
+                    <button onclick="downloadRegionReport('pdf')" class="text-[10px] font-black text-white bg-rose-500 hover:bg-rose-600 px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                        PDF
+                    </button>
+                    <button onclick="closeRegionReportModal()"
+                        class="text-slate-400 hover:text-slate-600 ml-2">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div id="region-report-content" class="overflow-x-auto max-h-[60vh] overflow-y-auto pr-2">
+                <div class="text-center py-10 text-slate-300 font-bold italic">載入中...</div>
+            </div>
+            <button onclick="closeRegionReportModal()"
                 class="w-full py-4 mt-8 bg-slate-100 rounded-2xl font-black text-slate-500">關閉視窗</button>
         </div>
     </div>
@@ -1039,6 +1091,7 @@
         let currentUser = null, teamsData = {}, historyData = [], cachedAnnouncements = [], cachedSignedUsers = [], proxyTarget = null, bonusTarget = null;
         let currentQuizOpenStatus = false, quizData = [], activeRowForUpload = null;
         let checkinZones = [], cachedHomeworkConfig = [], cachedHomeworkSubmissions = [], hwHistoryData = [];
+        let uploadedUrls = [];
 
         // --- 核心工具 ---
         function parseToTaipeiDate(val) {
@@ -1783,7 +1836,7 @@
             targetGroups.forEach(gn => {
                 const members = teamsData[gn] || [];
                 const submissionsInGroup = cachedHomeworkSubmissions.filter(s => s.group === gn);
-                
+
                 // 將繳交紀錄按姓名分組
                 const submissionGroups = {};
                 submissionsInGroup.forEach(s => {
@@ -1855,7 +1908,14 @@
                         </div>
                     </div>
                     <div class="grid grid-cols-2 gap-3 items-center">
-                        <input type="number" placeholder="最低字數" class="cfg-min p-3 border rounded-xl text-sm font-bold" value="${cfg.minChars}">
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-black text-slate-400">最低字數</label>
+                            <input type="number" placeholder="最低字數" class="cfg-min p-3 border rounded-xl text-sm font-bold" value="${cfg.minChars}">
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label class="text-[10px] font-black text-slate-400">允許上傳檔案數 (0 代表隱藏不需上傳)</label>
+                            <input type="number" placeholder="允許檔案數" class="cfg-max-files p-3 border rounded-xl text-sm font-bold" value="${cfg.maxFiles !== undefined ? cfg.maxFiles : 1}">
+                        </div>
                     </div>
                     
                     <div class="q-list-container space-y-4 pt-2">
@@ -1916,7 +1976,14 @@
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3 items-center">
-                    <input type="number" placeholder="最低字數" class="cfg-min p-3 border rounded-xl text-sm font-bold" value="200">
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black text-slate-400">最低字數</label>
+                        <input type="number" placeholder="最低字數" class="cfg-min p-3 border rounded-xl text-sm font-bold" value="200">
+                    </div>
+                    <div class="flex flex-col gap-1">
+                        <label class="text-[10px] font-black text-slate-400">允許上傳檔案數 (0 代表隱藏不需上傳)</label>
+                        <input type="number" placeholder="允許檔案數" class="cfg-max-files p-3 border rounded-xl text-sm font-bold" value="1">
+                    </div>
                 </div>
                 <div class="q-list-container space-y-4 pt-2">
                     <label class="text-[10px] text-indigo-400 font-black uppercase">問題列表</label>
@@ -1954,7 +2021,9 @@
                     }
                 });
                 const showRef = row.querySelector('.cfg-show-reflection').checked;
-                if (topic) data.push({ topic, minChars: min, questions: questions, showReflection: showRef });
+                const maxFilesVal = row.querySelector('.cfg-max-files');
+                const maxFiles = maxFilesVal !== null ? (parseInt(maxFilesVal.value) ?? 1) : 1;
+                if (topic) data.push({ topic, minChars: min, questions: questions, showReflection: showRef, maxFiles: maxFiles });
             });
 
             btn.disabled = true;
@@ -1994,7 +2063,22 @@
             if (cfg) {
                 hint.innerText = cfg.showReflection ? `(最少需寫 ${cfg.minChars} 字)` : "";
                 document.getElementById('homework-reflection-area').style.display = cfg.showReflection ? 'block' : 'none';
-                
+
+                // 動態處理檔案上傳設定
+                const maxFiles = cfg.maxFiles !== undefined ? parseInt(cfg.maxFiles) : 1;
+                const uploadArea = document.getElementById('homework-file-upload-area');
+                if (uploadArea) {
+                    if (maxFiles <= 0) {
+                        uploadArea.style.display = 'none';
+                        uploadedUrls = [];
+                        document.getElementById('homework-url').value = '';
+                    } else {
+                        uploadArea.style.display = 'block';
+                        uploadedUrls = [];
+                        renderUploadedFiles(maxFiles);
+                    }
+                }
+
                 const questions = cfg.questions || [];
 
                 if (questions.length > 0) {
@@ -2038,6 +2122,13 @@
             } else {
                 hint.innerText = "";
                 dynamicContainer.classList.add('hidden');
+                
+                // 預設隱藏上傳區塊
+                const uploadArea = document.getElementById('homework-file-upload-area');
+                if (uploadArea) uploadArea.style.display = 'none';
+                uploadedUrls = [];
+                const hiddenInput = document.getElementById('homework-url');
+                if (hiddenInput) hiddenInput.value = '';
             }
             updateCharCount();
         }
@@ -2081,9 +2172,12 @@
                     });
                     const result = await res.json();
                     if (result.success) {
-                        document.getElementById('homework-url').value = result.url;
-                        updateUrlPreview();
-                        toast('檔案上傳成功！網址已填入。');
+                        const topic = document.getElementById('homework-topic').value;
+                        const cfg = cachedHomeworkConfig.find(c => c.topic === topic);
+                        const maxFiles = cfg && cfg.maxFiles !== undefined ? parseInt(cfg.maxFiles) : 1;
+                        uploadedUrls.push(result.url);
+                        renderUploadedFiles(maxFiles);
+                        toast('檔案上傳成功！');
                     } else {
                         toast(result.error || '上傳失敗', true);
                     }
@@ -2095,6 +2189,79 @@
                 }
             };
             reader.readAsDataURL(file);
+        }
+
+        function addUrlFromInput() {
+            const input = document.getElementById('homework-url-input');
+            const url = input.value.trim();
+            if (!url) return toast('請輸入網址', true);
+            if (!url.startsWith('http://') && !url.startsWith('https://')) {
+                return toast('請輸入有效的網址 (需包含 http:// 或 https://)', true);
+            }
+            const topic = document.getElementById('homework-topic').value;
+            const cfg = cachedHomeworkConfig.find(c => c.topic === topic);
+            const maxFiles = cfg && cfg.maxFiles !== undefined ? parseInt(cfg.maxFiles) : 1;
+            
+            if (uploadedUrls.length >= maxFiles) {
+                return toast(`最多只能上傳/新增 ${maxFiles} 個連結`, true);
+            }
+            uploadedUrls.push(url);
+            input.value = '';
+            renderUploadedFiles(maxFiles);
+        }
+
+        function renderUploadedFiles(maxFiles) {
+            const listContainer = document.getElementById('homework-uploaded-files-list');
+            const hiddenInput = document.getElementById('homework-url');
+            const uploadBtn = document.getElementById('homework-upload-btn');
+            const inputContainer = document.getElementById('homework-url-input-container');
+            
+            if (!listContainer || !hiddenInput || !uploadBtn || !inputContainer) return;
+            
+            // 更新隱藏的 input value，以逗號隔開
+            hiddenInput.value = uploadedUrls.join(', ');
+            
+            // 控制按鈕與輸入框的顯示
+            if (uploadedUrls.length >= maxFiles) {
+                uploadBtn.style.display = 'none';
+                inputContainer.style.display = 'none';
+            } else {
+                uploadBtn.style.display = 'flex';
+                inputContainer.style.display = 'flex';
+            }
+            
+            // 渲染列表
+            listContainer.innerHTML = uploadedUrls.map((url, idx) => {
+                let displayName = url;
+                try {
+                    const parsed = new URL(url);
+                    // 取得網址路徑最後一部分
+                    displayName = decodeURIComponent(parsed.pathname.split('/').pop()) || parsed.hostname;
+                } catch(e) {}
+                if (displayName.length > 30) {
+                    displayName = displayName.substring(0, 15) + '...' + displayName.substring(displayName.length - 10);
+                }
+                
+                return `
+                    <div class="flex items-center justify-between p-3 bg-white border border-slate-100 rounded-2xl shadow-sm">
+                        <a href="${url}" target="_blank" class="text-xs text-indigo-600 font-bold underline truncate flex-1 hover:text-indigo-800">
+                            📄 ${displayName}
+                        </a>
+                        <button onclick="removeUploadedFile(${idx}, ${maxFiles})" class="text-rose-400 p-1 text-xs hover:text-rose-600 ml-2">✕ 刪除</button>
+                    </div>
+                `;
+            }).join('');
+            
+            // 更新 label
+            const label = document.getElementById('homework-file-label');
+            if (label) {
+                label.innerText = `參考網址 / 雲端連結 (已上傳 ${uploadedUrls.length}/${maxFiles})`;
+            }
+        }
+
+        function removeUploadedFile(idx, maxFiles) {
+            uploadedUrls.splice(idx, 1);
+            renderUploadedFiles(maxFiles);
         }
 
         async function handleHomeworkSubmit() {
@@ -2315,11 +2482,11 @@
             const modal = document.getElementById('member-hw-modal');
             const list = document.getElementById('member-hw-list');
             const title = document.getElementById('member-hw-title');
-            
+
             title.innerText = `${name} 的作業紀錄`;
             list.innerHTML = '<div class="text-center py-10"><div class="animate-spin rounded-full h-6 w-6 border-2 border-indigo-500 border-t-transparent mx-auto"></div></div>';
             modal.style.display = 'flex';
-            
+
             try {
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=getUserHomeworkHistory&name=${encodeURIComponent(name)}&group=${encodeURIComponent(group)}`);
                 const r = await res.json();
@@ -2582,6 +2749,89 @@
             } catch (e) { console.error("Fetch Sheet Error:", e); return []; }
         }
 
+        // --- 區域統計報表邏輯 ---
+        function openRegionReportModal() {
+            document.getElementById('region-report-modal').style.display = 'flex';
+            loadRegionReport();
+        }
+
+        function closeRegionReportModal() {
+            document.getElementById('region-report-modal').style.display = 'none';
+        }
+
+        async function loadRegionReport() {
+            const container = document.getElementById('region-report-content');
+            container.innerHTML = '<div class="text-center py-10 text-slate-300 font-bold italic">載入資料中，請稍候...</div>';
+            try {
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=getRegionReport`);
+                const r = await res.json();
+                if (!r.success) throw new Error(r.error);
+                
+                const data = r.data;
+                if (!data || data.length === 0) {
+                    container.innerHTML = '<div class="text-center py-10 text-slate-400 font-bold">目前無區域資料</div>';
+                    return;
+                }
+                
+                let tableHTML = '<table class="w-full text-xs text-center border-collapse border border-slate-200 mt-2">';
+                data.forEach((row, rowIndex) => {
+                    let isHeader = rowIndex < 2; 
+                    let bg = isHeader ? 'bg-indigo-50' : (rowIndex % 2 === 0 ? 'bg-white' : 'bg-slate-50');
+                    tableHTML += `<tr class="${bg}">`;
+                    row.forEach(cell => {
+                        let tag = isHeader ? 'th' : 'td';
+                        let cls = isHeader ? 'border border-slate-200 p-2 font-black text-slate-700 whitespace-nowrap' : 'border border-slate-200 p-2 text-slate-600 whitespace-nowrap';
+                        let cellContent = cell;
+                        if (!isHeader && cellContent === 0) cellContent = '<span class="text-slate-300">0</span>';
+                        tableHTML += `<${tag} class="${cls}">${cellContent === '' ? '' : cellContent}</${tag}>`;
+                    });
+                    tableHTML += '</tr>';
+                });
+                tableHTML += '</table>';
+                container.innerHTML = tableHTML;
+            } catch (e) {
+                container.innerHTML = `<div class="text-center py-10 text-rose-500 font-bold">載入失敗: ${e.message}</div>`;
+            }
+        }
+
+        async function downloadRegionReport(format) {
+            const el = document.getElementById('region-report-content');
+            if (el.innerText.includes('載入資料中') || el.innerText.includes('目前無區域資料')) return toast('沒有資料可供下載', true);
+            
+            toast('正在產生檔案，請稍候...');
+            try {
+                const originalOverflow = el.style.overflow;
+                const originalMaxHeight = el.style.maxHeight;
+                el.style.overflow = 'visible';
+                el.style.maxHeight = 'none';
+
+                const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff' });
+                
+                el.style.overflow = originalOverflow;
+                el.style.maxHeight = originalMaxHeight;
+
+                const dateStr = getBatchFormattedDate();
+                if (format === 'jpg') {
+                    const link = document.createElement('a');
+                    link.download = `區域出席統計_${dateStr}.jpg`;
+                    link.href = canvas.toDataURL('image/jpeg', 0.9);
+                    link.click();
+                    toast('JPG 下載完成！');
+                } else if (format === 'pdf') {
+                    const { jsPDF } = window.jspdf;
+                    const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                    const orientation = canvas.width > canvas.height ? 'l' : 'p';
+                    const pdf = new jsPDF(orientation, 'px', [canvas.width, canvas.height]);
+                    pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+                    pdf.save(`區域出席統計_${dateStr}.pdf`);
+                    toast('PDF 下載完成！');
+                }
+            } catch (err) {
+                console.error(err);
+                toast('下載失敗: ' + err.message, true);
+            }
+        }
+
         function initApp() {
             fetchTeamsData(); fetchLocationData(); fetchHomeworkConfig();
             const saved = localStorage.getItem('sh_user_secure');
@@ -2593,7 +2843,12 @@
                     document.getElementById('display-role').innerText = currentUser.role || '學員';
                     const r = (currentUser.role || '').toUpperCase();
                     if (['ADMIN', 'TEACHER', 'LEADER', '組長'].some(x => r.includes(x.toUpperCase()))) document.getElementById('nav-admin').classList.remove('hidden');
-                    if (['ADMIN', 'TEACHER'].some(x => r.includes(x.toUpperCase()))) { document.getElementById('nav-questions').classList.remove('hidden'); document.getElementById('add-announcement-btn')?.classList.remove('hidden'); document.getElementById('nav-img-transfer').classList.remove('hidden'); }
+                    if (['ADMIN', 'TEACHER'].some(x => r.includes(x.toUpperCase()))) { 
+                        document.getElementById('nav-questions').classList.remove('hidden'); 
+                        document.getElementById('add-announcement-btn')?.classList.remove('hidden'); 
+                        document.getElementById('nav-img-transfer').classList.remove('hidden'); 
+                        document.getElementById('admin-region-report-btn')?.classList.remove('hidden');
+                    }
                     else if (r.includes('發布員')) { document.getElementById('add-announcement-btn')?.classList.remove('hidden'); document.getElementById('nav-img-transfer').classList.remove('hidden'); }
                     switchView('bulletin');
                 } catch (e) { switchView('login'); }
