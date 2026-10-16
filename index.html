@@ -5,13 +5,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>崇華十六期整合管理系統</title>
+    <!-- 預先連線以加速 Google Fonts 載入 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Noto+Sans+TC:wght@400;500;700&display=swap">
+    <!-- Tailwind Play CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Chart.js 改為 defer 非阻塞載入 -->
+    <script defer src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&family=Inter:wght@400;600;800&display=swap');
-
         :root {
             --emerald-primary: #10b981;
             --emerald-dark: #059669;
@@ -768,14 +770,24 @@
                 </div>
             </div>
 
-            <div class="mb-4 px-2 flex justify-between items-center">
+            <div class="mb-4 px-2 flex justify-between items-center flex-wrap gap-2">
                 <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest">點名出席狀況</h3>
-                <button id="admin-region-report-btn" onclick="openRegionReportModal()"
-                    class="hidden bg-indigo-500 hover:bg-indigo-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    查看區域統計</button>
+                <div class="flex items-center gap-2">
+                    <button id="admin-sync-attendance-btn" onclick="syncLatestAttendance(true)"
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                        </svg>
+                        同步最新名單與出席
+                    </button>
+                    <button id="admin-region-report-btn" onclick="openRegionReportModal()"
+                        class="hidden bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        查看區域統計
+                    </button>
+                </div>
             </div>
             <div id="attendance-report-list" class="space-y-3 mb-10"></div>
 
@@ -1081,7 +1093,7 @@
         const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZ06Lm_lJk-A6Xs0GVFGdrtmrfA0GM-ALCuaaCCIcvK0V-5zLg27uiI70HwseSNfLCEA/exec';
         const SPREADSHEET_ID = '1zgooij9pB4VIYGDti8QgbNu5VQVnd4Ke6UsYQnBrfsk';
         const TEAMS_GID = '1026036029';
-        const GROUP_ORDER = ['第一組', '第二組', '第三組', '第四組', '第五組', '第六組', '第七組', '孟加拉', '德國', '印尼', '馬來西亞', '神州', '主領班', '特助'];
+        const GROUP_ORDER = ['第一組', '第二組', '第三組', '第四組', '第五組', '第六組', '第七組', '第八組', '第九組', '第十組', '孟加拉', '德國', '印尼', '馬來西亞', '神州', '主領班', '特助'];
         const QUIZ_GIDS = { '隨堂': '0', '論語': '1250135497', '性理': '1342680959', '道德經': '1246480043', '六祖': '1302889740' };
         const MAX_FILE_SIZE = 20 * 1024 * 1024;
 
@@ -1091,6 +1103,17 @@
         let uploadedUrls = [];
 
         // --- 核心工具 ---
+        function loadScript(src) {
+            return new Promise((resolve, reject) => {
+                if (document.querySelector(`script[src="${src}"]`)) return resolve();
+                const script = document.createElement('script');
+                script.src = src;
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
         function parseToTaipeiDate(val) {
             if (!val) return null;
             let str = val.toString().trim();
@@ -1210,17 +1233,24 @@
             });
         }
 
-        async function fetchLocationData() {
+        async function fetchLocationData(force = false) {
+            const cached = localStorage.getItem('sh_locations');
+            if (cached && !force) {
+                try { checkinZones = JSON.parse(cached); } catch (e) {}
+            }
             try {
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=getLocations`);
                 const r = await res.json();
                 if (r.success) {
                     checkinZones = r.data;
-                } else {
+                    localStorage.setItem('sh_locations', JSON.stringify(r.data));
+                } else if (!checkinZones.length) {
                     throw new Error(r.error);
                 }
             } catch (e) {
-                checkinZones = [{ name: "預設地點", lat: 24.13388, lng: 120.71792, radius: 500 }];
+                if (!checkinZones.length) {
+                    checkinZones = [{ name: "預設地點", lat: 24.13388, lng: 120.71792, radius: 500 }];
+                }
             }
         }
 
@@ -1284,10 +1314,11 @@
             }
             if (viewName === 'quiz' && currentUser) loadQuizConfigs();
             if (viewName === 'results' && currentUser) loadHistoryData();
-            if (viewName === 'admin' && currentUser) loadAdminDashboard();
+            if (viewName === 'admin' && currentUser) loadAdminDashboard(true);
             if (viewName === 'questions' && currentUser) loadQuestionsView();
             if (viewName === 'img-transfer') setupImgTransfer();
             if (viewName === 'homework') {
+                if (!cachedHomeworkConfig || cachedHomeworkConfig.length === 0) fetchHomeworkConfig();
                 document.getElementById('homework-reflection').value = "";
                 document.getElementById('homework-url').value = "";
                 onHomeworkTopicChange();
@@ -1296,33 +1327,50 @@
             window.scrollTo(0, 0);
         }
 
-        async function fetchTeamsData() {
+        function renderTeamsDropdown() {
+            const groups = Object.keys(teamsData).sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b));
+            ['login-group', 'reg-group'].forEach(id => {
+                const s = document.getElementById(id);
+                if (!s) return;
+                const currentVal = s.value;
+                s.innerHTML = '<option value="" disabled selected>請選擇組別</option>';
+                groups.forEach(g => s.add(new Option(g, g)));
+                if (currentVal) s.value = currentVal;
+                s.onchange = (e) => {
+                    const ns = id === 'login-group' ? document.getElementById('login-name') : document.getElementById('reg-name');
+                    ns.innerHTML = '<option value="" disabled selected>姓名</option>';
+                    (teamsData[e.target.value] || []).sort().forEach(n => ns.add(new Option(n, n)));
+                    ns.disabled = false;
+                };
+            });
+        }
+
+        async function fetchTeamsData(force = false) {
+            const cached = localStorage.getItem('sh_teams_data');
+            if (cached && !force) {
+                try {
+                    teamsData = JSON.parse(cached);
+                    renderTeamsDropdown();
+                } catch (e) {}
+            }
             try {
-                // 改為透過 GAS 後端獲取資料，不再依賴 GID
-                const res = await fetch(`${APPS_SCRIPT_URL}?action=getTeamsData`);
+                // 透過 GAS 後端獲取資料，若 force 為 true 則通知後端清除快取
+                const url = force ? `${APPS_SCRIPT_URL}?action=getTeamsData&force=1` : `${APPS_SCRIPT_URL}?action=getTeamsData`;
+                const res = await fetch(url);
                 const r = await res.json();
                 if (r.success) {
                     teamsData = r.data;
-                    const groups = Object.keys(teamsData).sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b));
-                    ['login-group', 'reg-group'].forEach(id => {
-                        const s = document.getElementById(id);
-                        if (!s) return;
-                        s.innerHTML = '<option value="" disabled selected>請選擇組別</option>';
-                        groups.forEach(g => s.add(new Option(g, g)));
-                        s.onchange = (e) => {
-                            const ns = id === 'login-group' ? document.getElementById('login-name') : document.getElementById('reg-name');
-                            ns.innerHTML = '<option value="" disabled selected>姓名</option>';
-                            (teamsData[e.target.value] || []).sort().forEach(n => ns.add(new Option(n, n)));
-                            ns.disabled = false;
-                        };
-                    });
-                } else {
+                    localStorage.setItem('sh_teams_data', JSON.stringify(r.data));
+                    renderTeamsDropdown();
+                } else if (!Object.keys(teamsData).length) {
                     console.error("Fetch Teams Data Error:", r.error);
                     toast("無法取得組別資料，請確認後端已更新。", true);
                 }
             } catch (e) {
-                console.error("Fetch Teams Data Error:", e);
-                toast("連線異常，請確認網路或後端部署。", true);
+                if (!Object.keys(teamsData).length) {
+                    console.error("Fetch Teams Data Error:", e);
+                    toast("連線異常，請確認網路或後端部署。", true);
+                }
             }
         }
 
@@ -1356,17 +1404,31 @@
             try {
                 const res = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'register', group: g, name: n, password: p }) });
                 const result = await res.json();
-                if (result.success) { toast('註冊成功，請登入'); switchView('login'); }
+                if (result.success) { 
+                    toast('註冊成功，請登入'); 
+                    fetchTeamsData(true);
+                    switchView('login'); 
+                }
                 else toast(result.error || '註冊失敗', true);
             } catch (e) { toast('連線失敗', true); } finally { btn.disabled = false; }
         }
 
         async function loadAnnouncements() {
+            const cached = localStorage.getItem('sh_announcements');
+            if (cached) {
+                try {
+                    cachedAnnouncements = JSON.parse(cached);
+                    renderAnnouncements();
+                } catch (e) {}
+            }
             try {
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=getAnnouncements`);
                 const r = await res.json();
-                cachedAnnouncements = r.data || [];
-                renderAnnouncements();
+                if (r.data) {
+                    cachedAnnouncements = r.data || [];
+                    localStorage.setItem('sh_announcements', JSON.stringify(cachedAnnouncements));
+                    renderAnnouncements();
+                }
             } catch (e) { }
         }
 
@@ -1489,15 +1551,39 @@
             } catch (e) { toast("載入題目失敗", true); }
         }
 
-        async function loadAdminDashboard() {
+        async function syncLatestAttendance(showToast = true) {
+            if (showToast) toast("正在同步試算表最新名單與出席...", false, true);
+            const btn = document.getElementById('admin-sync-attendance-btn');
+            if (btn) btn.disabled = true;
+            try {
+                await fetchTeamsData(true);
+                await loadAdminDashboard(true);
+                if (showToast) toast("名單與出席資料已同步完成！");
+            } catch (e) {
+                console.error("Sync attendance error:", e);
+                if (showToast) toast("同步失敗: " + e.message, true);
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        async function loadAdminDashboard(force = false) {
             if (!currentUser) return;
             const r = (currentUser.role || '').toUpperCase();
             const isAdminOrTeacher = ['ADMIN', '管理員', 'TEACHER', '老師'].some(x => r.includes(x.toUpperCase()));
             const isLeader = ['LEADER', '組長'].some(x => r.includes(x.toUpperCase()));
 
             try {
+                if (force || Object.keys(teamsData).length === 0) {
+                    await fetchTeamsData(force);
+                }
+
+                const attendanceUrl = force
+                    ? `${APPS_SCRIPT_URL}?action=getAttendanceReport&role=${encodeURIComponent(currentUser.role)}&group=${encodeURIComponent(currentUser.group)}&_t=${Date.now()}`
+                    : `${APPS_SCRIPT_URL}?action=getAttendanceReport&role=${encodeURIComponent(currentUser.role)}&group=${encodeURIComponent(currentUser.group)}`;
+
                 const [attendanceRes, homeworkConfigRes] = await Promise.all([
-                    fetch(`${APPS_SCRIPT_URL}?action=getAttendanceReport&role=${encodeURIComponent(currentUser.role)}&group=${encodeURIComponent(currentUser.group)}`),
+                    fetch(attendanceUrl),
                     fetch(`${APPS_SCRIPT_URL}?action=getHomeworkConfig`)
                 ]);
 
@@ -1518,10 +1604,14 @@
 
                 if (isAdminOrTeacher) {
                     filterContainer.classList.remove('hidden');
-                    if (filterSelect.options.length === 0) {
+                    const currentSelected = filterSelect.value;
+                    if (force || filterSelect.options.length <= 1) {
                         filterSelect.innerHTML = '<option value="" disabled selected>🔍 請選擇組別查看點名報告</option>';
                         filterSelect.add(new Option("🌟 查看所有組別 (所有成員)", "ALL"));
                         Object.keys(teamsData).sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b)).forEach(g => filterSelect.add(new Option(g, g)));
+                        if (currentSelected && [...filterSelect.options].some(o => o.value === currentSelected)) {
+                            filterSelect.value = currentSelected;
+                        }
                     }
                     if (r.includes('ADMIN') || r.includes('管理員')) {
                         createBonusSheetBtn?.classList.remove('hidden');
@@ -1570,7 +1660,9 @@
                 }
 
                 members.sort().forEach(name => {
-                    const sign = cachedSignedUsers.slice().reverse().find(s => s.group === gn && s.name === name);
+                    const cleanName = (name || '').toString().trim();
+                    const cleanGroup = (gn || '').toString().trim();
+                    const sign = cachedSignedUsers.slice().reverse().find(s => (s.group || '').toString().trim() === cleanGroup && (s.name || '').toString().trim() === cleanName);
                     let dot = 'dot-missing', tCol = 'text-slate-300', txt = ''; // 預設未簽到不顯示文字
                     if (sign && sign.time) {
                         const n = sign.note || '';
@@ -1579,23 +1671,26 @@
                         else if (n.includes('假')) { dot = 'dot-leave'; tCol = 'text-orange-500'; txt = `📋 ${n}`; }
                         else { dot = 'dot-signed'; tCol = 'text-emerald-600'; txt = `✅ ${sign.time}`; }
                     }
+                    const pts = (sign && sign.pts !== undefined) ? sign.pts : 0;
+                    const totalPts = (sign && sign.totalPts !== undefined) ? sign.totalPts : pts;
                     html += `
                     <div class="bg-white p-4 rounded-2xl border mb-2 flex justify-between shadow-sm items-center hover:border-emerald-200 transition-all">
                         <div class="flex items-center">
                             <span class="status-dot ${dot}"></span>
                             <div class="flex flex-col">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-bold text-slate-700">${name}</span>
+                                    <span class="font-bold text-slate-700">${cleanName}</span>
                                 </div>
-                                ${sign && sign.pts !== undefined ? `<span class="text-[9px] font-black text-amber-500 block">🏆 當表加分：${sign.pts}</span><span class="text-[9px] font-black text-amber-600 block">🌟 全期總共：${sign.totalPts !== undefined ? sign.totalPts : sign.pts}</span>` : ''}
+                                <span class="text-[9px] font-black text-amber-500 block">🏆 當表加分：${pts}</span>
+                                <span class="text-[9px] font-black text-amber-600 block">🌟 全期總共：${totalPts}</span>
                             </div>
                         </div>
                         <div class="flex items-center gap-2">
                             <span class="${tCol} text-[11px] font-black tracking-tighter mr-2">${txt}</span>
-                            <button onclick="openBonusModal('${gn}', '${name}')" class="p-2 text-amber-400 hover:text-amber-600 transition-colors">
+                            <button onclick="openBonusModal('${cleanGroup}', '${cleanName}')" class="p-2 text-amber-400 hover:text-amber-600 transition-colors">
                                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path></svg>
                             </button>
-                            <button onclick="openProxyModal('${gn}', '${name}')" class="p-2 text-slate-300 hover:text-emerald-600 transition-colors">
+                            <button onclick="openProxyModal('${cleanGroup}', '${cleanName}')" class="p-2 text-slate-300 hover:text-emerald-600 transition-colors">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
                             </button>
                         </div>
@@ -1681,6 +1776,10 @@
                         }
                     } else {
                         select.classList.add('hidden');
+                    }
+
+                    if (typeof Chart === 'undefined') {
+                        await loadScript('https://cdn.jsdelivr.net/npm/chart.js');
                     }
 
                     const ctx = canvas.getContext('2d');
@@ -1831,26 +1930,28 @@
             const targetGroups = (gVal === 'ALL' ? Object.keys(teamsData).sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b)) : [gVal]);
 
             targetGroups.forEach(gn => {
-                const members = teamsData[gn] || [];
-                const submissionsInGroup = cachedHomeworkSubmissions.filter(s => s.group === gn);
+                const cleanGn = (gn || '').toString().trim();
+                const submissionsInGroup = cachedHomeworkSubmissions.filter(s => (s.group || '').toString().trim() === cleanGn);
 
                 // 將繳交紀錄按姓名分組
                 const submissionGroups = {};
                 submissionsInGroup.forEach(s => {
-                    if (!submissionGroups[s.name]) submissionGroups[s.name] = [];
-                    submissionGroups[s.name].push(s);
+                    const cleanSName = (s.name || '').toString().trim();
+                    if (!submissionGroups[cleanSName]) submissionGroups[cleanSName] = [];
+                    submissionGroups[cleanSName].push(s);
                 });
 
-                html += `<div class="text-[10px] font-black text-indigo-400 mt-6 px-2 border-l-4 border-indigo-500 ml-1 mb-3 uppercase tracking-widest">${gn} - 統計報告</div>`;
+                html += `<div class="text-[10px] font-black text-indigo-400 mt-6 px-2 border-l-4 border-indigo-500 ml-1 mb-3 uppercase tracking-widest">${cleanGn} - 統計報告</div>`;
 
                 // 遍歷所有組員，區分已繳交與未繳交
                 members.sort().forEach(name => {
-                    const userSubmissions = submissionGroups[name] || [];
+                    const cleanName = (name || '').toString().trim();
+                    const userSubmissions = submissionGroups[cleanName] || [];
                     if (userSubmissions.length > 0) {
                         // 已繳交：顯示一張卡片與繳交次數
                         const lastSub = userSubmissions[userSubmissions.length - 1]; // 取得最後一筆
                         html += `
-                        <div class="bg-white p-4 rounded-2xl border border-emerald-100 mb-2 shadow-sm submitted-card flex justify-between items-center hover:border-emerald-300 transition-all cursor-pointer" onclick="viewMemberHomework('${gn}', '${name}')">
+                        <div class="bg-white p-4 rounded-2xl border border-emerald-100 mb-2 shadow-sm submitted-card flex justify-between items-center hover:border-emerald-300 transition-all cursor-pointer" onclick="viewMemberHomework('${cleanGn}', '${cleanName}')">
                             <div class="flex items-center gap-3">
                                 <div class="flex flex-col">
                                     <div class="flex items-center gap-2 mb-1">
@@ -2038,17 +2139,38 @@
             } catch (e) { toast("設定同步失敗", true); } finally { btn.disabled = false; }
         }
 
-        async function fetchHomeworkConfig() {
+        async function fetchHomeworkConfig(force = false) {
             const select = document.getElementById('homework-topic');
+            const cached = localStorage.getItem('sh_hw_config');
+            if (cached && !force) {
+                try {
+                    cachedHomeworkConfig = JSON.parse(cached);
+                    if (select) {
+                        select.innerHTML = '<option value="" disabled selected>請選擇作業主題</option>';
+                        cachedHomeworkConfig.forEach(cfg => select.add(new Option(cfg.topic, cfg.topic)));
+                    }
+                } catch (e) {}
+            }
             try {
                 const res = await fetch(`${APPS_SCRIPT_URL}?action=getHomeworkConfig`);
                 const r = await res.json();
                 if (r.success) {
                     cachedHomeworkConfig = r.data;
-                    select.innerHTML = '<option value="" disabled selected>請選擇作業主題</option>';
-                    cachedHomeworkConfig.forEach(cfg => select.add(new Option(cfg.topic, cfg.topic)));
-                } else select.innerHTML = '<option value="" disabled selected>載入失敗</option>';
-            } catch (e) { select.innerHTML = '<option value="" disabled selected>連線異常</option>'; }
+                    localStorage.setItem('sh_hw_config', JSON.stringify(r.data));
+                    if (select) {
+                        const currentVal = select.value;
+                        select.innerHTML = '<option value="" disabled selected>請選擇作業主題</option>';
+                        cachedHomeworkConfig.forEach(cfg => select.add(new Option(cfg.topic, cfg.topic)));
+                        if (currentVal) select.value = currentVal;
+                    }
+                } else if (!cachedHomeworkConfig.length && select) {
+                    select.innerHTML = '<option value="" disabled selected>載入失敗</option>';
+                }
+            } catch (e) {
+                if (!cachedHomeworkConfig.length && select) {
+                    select.innerHTML = '<option value="" disabled selected>連線異常</option>';
+                }
+            }
         }
 
         function onHomeworkTopicChange() {
@@ -2795,8 +2917,14 @@
             const el = document.getElementById('region-report-content');
             if (el.innerText.includes('載入資料中') || el.innerText.includes('目前無區域資料')) return toast('沒有資料可供下載', true);
             
-            toast('正在產生檔案，請稍候...');
+            toast('正在載入套件並產生檔案，請稍候...');
             try {
+                // 動態載入 html2canvas 與 jsPDF，節省首頁開啟流量
+                await loadScript('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js');
+                if (format === 'pdf') {
+                    await loadScript('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js');
+                }
+
                 const originalOverflow = el.style.overflow;
                 const originalMaxHeight = el.style.maxHeight;
                 el.style.overflow = 'visible';
@@ -2830,12 +2958,14 @@
         }
 
         function initApp() {
-            fetchTeamsData(); fetchLocationData(); fetchHomeworkConfig();
             const saved = localStorage.getItem('sh_user_secure');
             if (saved && saved !== "undefined") {
                 try {
-                    currentUser = JSON.parse(saved); document.getElementById('main-nav').classList.remove('hidden');
-                    const ud = document.getElementById('user-display'); ud.classList.remove('hidden'); ud.classList.add('flex');
+                    currentUser = JSON.parse(saved); 
+                    document.getElementById('main-nav').classList.remove('hidden');
+                    const ud = document.getElementById('user-display'); 
+                    ud.classList.remove('hidden'); 
+                    ud.classList.add('flex');
                     document.getElementById('display-name').innerText = currentUser.name;
                     document.getElementById('display-role').innerText = currentUser.role || '學員';
                     const r = (currentUser.role || '').toUpperCase();
@@ -2846,10 +2976,19 @@
                         document.getElementById('nav-img-transfer').classList.remove('hidden'); 
                         document.getElementById('admin-region-report-btn')?.classList.remove('hidden');
                     }
-                    else if (r.includes('發布員')) { document.getElementById('add-announcement-btn')?.classList.remove('hidden'); document.getElementById('nav-img-transfer').classList.remove('hidden'); }
+                    else if (r.includes('發布員')) { 
+                        document.getElementById('add-announcement-btn')?.classList.remove('hidden'); 
+                        document.getElementById('nav-img-transfer').classList.remove('hidden'); 
+                    }
                     switchView('bulletin');
-                } catch (e) { switchView('login'); }
-            } else switchView('login');
+                } catch (e) { 
+                    fetchTeamsData();
+                    switchView('login'); 
+                }
+            } else {
+                fetchTeamsData();
+                switchView('login');
+            }
         }
 
         function logout() { if (confirm("確定登出？")) { localStorage.removeItem('sh_user_secure'); location.reload(); } }
