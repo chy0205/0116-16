@@ -1582,9 +1582,10 @@
                     ? `${APPS_SCRIPT_URL}?action=getAttendanceReport&role=${encodeURIComponent(currentUser.role)}&group=${encodeURIComponent(currentUser.group)}&_t=${Date.now()}`
                     : `${APPS_SCRIPT_URL}?action=getAttendanceReport&role=${encodeURIComponent(currentUser.role)}&group=${encodeURIComponent(currentUser.group)}`;
 
+                const hwConfigUrl = force ? `${APPS_SCRIPT_URL}?action=getHomeworkConfig&force=1` : `${APPS_SCRIPT_URL}?action=getHomeworkConfig`;
                 const [attendanceRes, homeworkConfigRes] = await Promise.all([
                     fetch(attendanceUrl),
-                    fetch(`${APPS_SCRIPT_URL}?action=getHomeworkConfig`)
+                    fetch(hwConfigUrl)
                 ]);
 
                 const attendanceResult = await attendanceRes.json();
@@ -1621,12 +1622,23 @@
                     loadBonusStats(); // 載入加分統計
                 }
 
-                if (homeworkConfigResult.success && homeworkReportSelect.options.length === 0) {
-                    homeworkReportSelect.innerHTML = '<option value="" disabled selected>請選擇作業主題</option>';
-                    homeworkConfigResult.data.forEach(cfg => homeworkReportSelect.add(new Option(cfg.topic, cfg.topic)));
+                if (homeworkConfigResult.success && homeworkReportSelect) {
+                    const currentHwTopic = homeworkReportSelect.value;
+                    if (force || homeworkReportSelect.options.length <= 1) {
+                        homeworkReportSelect.innerHTML = '<option value="" disabled selected>請選擇作業主題</option>';
+                        (homeworkConfigResult.data || []).forEach(cfg => homeworkReportSelect.add(new Option(cfg.topic, cfg.topic)));
+                        if (currentHwTopic && [...homeworkReportSelect.options].some(o => o.value === currentHwTopic)) {
+                            homeworkReportSelect.value = currentHwTopic;
+                        }
+                    }
                 }
 
                 applyFilters();
+
+                // 若作業主題已有選取，同步更新作業繳交統計
+                if (homeworkReportSelect && homeworkReportSelect.value) {
+                    loadHomeworkReport();
+                }
             } catch (e) {
                 console.error("Dashboard Load Error:", e);
                 toast("管理資料連線失敗: " + e.message, true);
@@ -1638,6 +1650,11 @@
             const r = (currentUser.role || '').toUpperCase();
             const isLeader = ['LEADER', '組長'].some(x => r.includes(x.toUpperCase()));
             const gVal = isLeader ? currentUser.group : (document.getElementById('admin-group-filter')?.value || '');
+
+            // 當切換組別篩選時，若已選取作業主題，也同步刷新作業報告呈現之組別
+            if (document.getElementById('admin-homework-topic')?.value) {
+                renderHomeworkReport();
+            }
 
             if (!gVal) {
                 if (list) list.innerHTML = '<div class="text-center py-10 text-slate-300 font-bold italic">請選擇組別以顯示資料</div>';
@@ -1888,20 +1905,27 @@
         }
 
         async function loadHomeworkReport() {
-            const topic = document.getElementById('admin-homework-topic').value;
+            const topic = document.getElementById('admin-homework-topic')?.value;
             const listDiv = document.getElementById('homework-report-list');
-            if (!topic) return;
+            if (!topic || !listDiv) return;
 
             listDiv.innerHTML = '<div class="text-center py-10"><div class="animate-spin rounded-full h-6 w-6 border-2 border-indigo-500 border-t-transparent mx-auto"></div></div>';
 
             try {
-                const res = await fetch(`${APPS_SCRIPT_URL}?action=getHomeworkReport&topic=${encodeURIComponent(topic)}`);
+                const res = await fetch(`${APPS_SCRIPT_URL}?action=getHomeworkReport&topic=${encodeURIComponent(topic)}&_t=${Date.now()}`);
                 const r = await res.json();
                 if (r.success) {
-                    cachedHomeworkSubmissions = r.data;
+                    cachedHomeworkSubmissions = r.data || [];
                     renderHomeworkReport();
-                } else toast("作業紀錄讀取失敗", true);
-            } catch (e) { toast("網路連線異常", true); }
+                } else {
+                    toast("作業紀錄讀取失敗: " + (r.error || ""), true);
+                    listDiv.innerHTML = '<div class="text-center py-10 text-rose-400 font-bold">作業紀錄讀取失敗</div>';
+                }
+            } catch (e) {
+                console.error("loadHomeworkReport error:", e);
+                toast("網路連線異常", true);
+                listDiv.innerHTML = '<div class="text-center py-10 text-rose-400 font-bold">網路連線異常</div>';
+            }
         }
 
         async function reloadAttendanceWithBonus(sheetName) {
@@ -1920,28 +1944,53 @@
         }
 
         function renderHomeworkReport() {
-            const topic = document.getElementById('admin-homework-topic').value;
+            const topic = document.getElementById('admin-homework-topic')?.value;
             const listDiv = document.getElementById('homework-report-list');
+            if (!listDiv) return;
+            if (!topic) {
+                listDiv.innerHTML = '<div class="text-center py-10 text-indigo-300 font-bold italic">請選擇上方作業主題</div>';
+                return;
+            }
+
             const r = (currentUser.role || '').toUpperCase();
             const isLeader = ['LEADER', '組長'].some(x => r.includes(x.toUpperCase()));
             const gVal = isLeader ? currentUser.group : (document.getElementById('admin-group-filter')?.value || 'ALL');
 
             let html = '';
-            const targetGroups = (gVal === 'ALL' ? Object.keys(teamsData).sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b)) : [gVal]);
+            const targetGroups = (gVal === 'ALL' || !gVal ? Object.keys(teamsData).sort((a, b) => GROUP_ORDER.indexOf(a) - GROUP_ORDER.indexOf(b)) : [gVal]);
 
             targetGroups.forEach(gn => {
                 const cleanGn = (gn || '').toString().trim();
-                const submissionsInGroup = cachedHomeworkSubmissions.filter(s => (s.group || '').toString().trim() === cleanGn);
+                const submissionsInGroup = (cachedHomeworkSubmissions || []).filter(s => (s.group || '').toString().trim() === cleanGn);
 
                 // 將繳交紀錄按姓名分組
                 const submissionGroups = {};
                 submissionsInGroup.forEach(s => {
                     const cleanSName = (s.name || '').toString().trim();
+                    if (!cleanSName) return;
                     if (!submissionGroups[cleanSName]) submissionGroups[cleanSName] = [];
                     submissionGroups[cleanSName].push(s);
                 });
 
-                html += `<div class="text-[10px] font-black text-indigo-400 mt-6 px-2 border-l-4 border-indigo-500 ml-1 mb-3 uppercase tracking-widest">${cleanGn} - 統計報告</div>`;
+                // 正確取得該組組員名單 (修復 members 未宣告之 ReferenceError)
+                const members = (teamsData[gn] || teamsData[cleanGn] || []).slice();
+                // 若有交作業但不在 teamsData 名單中的組員，也納入列表顯示
+                Object.keys(submissionGroups).forEach(subName => {
+                    if (!members.some(m => (m || '').toString().trim() === subName)) {
+                        members.push(subName);
+                    }
+                });
+
+                html += `
+                <div class="flex items-center justify-between mt-8 mb-4 px-2 border-l-4 border-indigo-500 py-1 bg-slate-50/50 rounded-r-lg">
+                    <span class="font-black text-indigo-700 ml-3 text-sm">${cleanGn} - 作業統計</span>
+                    <span class="text-[10px] font-black text-indigo-500 uppercase tracking-widest mr-2">已繳交 ${Object.keys(submissionGroups).length} / ${members.length} 人</span>
+                </div>`;
+
+                if (members.length === 0) {
+                    html += `<div class="text-xs text-slate-400 italic py-3 px-3">此組別暫無組員資料</div>`;
+                    return;
+                }
 
                 // 遍歷所有組員，區分已繳交與未繳交
                 members.sort().forEach(name => {
@@ -1950,21 +1999,22 @@
                     if (userSubmissions.length > 0) {
                         // 已繳交：顯示一張卡片與繳交次數
                         const lastSub = userSubmissions[userSubmissions.length - 1]; // 取得最後一筆
+                        const reflectionSnippet = lastSub.reflection ? (lastSub.reflection.length > 40 ? lastSub.reflection.substring(0, 40) + '...' : lastSub.reflection) : '無文字心得';
                         html += `
                         <div class="bg-white p-4 rounded-2xl border border-emerald-100 mb-2 shadow-sm submitted-card flex justify-between items-center hover:border-emerald-300 transition-all cursor-pointer" onclick="viewMemberHomework('${cleanGn}', '${cleanName}')">
                             <div class="flex items-center gap-3">
                                 <div class="flex flex-col">
                                     <div class="flex items-center gap-2 mb-1">
                                         <span class="text-[10px] font-black text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">已繳交</span>
-                                        <span class="font-bold text-slate-700">${name}</span>
-                                        <span class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-black">📝 ${userSubmissions.length}</span>
+                                        <span class="font-bold text-slate-700">${cleanName}</span>
+                                        <span class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-full font-black">📝 ${userSubmissions.length} 次</span>
                                     </div>
-                                    <p class="text-[10px] text-slate-400 font-medium truncate max-w-[200px]">${lastSub.reflection.substring(0, 40)}...</p>
+                                    <p class="text-[10px] text-slate-400 font-medium truncate max-w-[200px]">${reflectionSnippet}</p>
                                 </div>
                             </div>
                             <div class="flex flex-col items-end gap-1">
-                                <span class="text-[9px] text-slate-300 font-black tracking-tighter">最新：${lastSub.time}</span>
-                                <span class="text-[9px] text-indigo-400 font-bold">點擊查看內容</span>
+                                <span class="text-[9px] text-slate-300 font-black tracking-tighter">最新：${lastSub.time || ''}</span>
+                                <span class="text-[9px] text-indigo-500 font-bold">點擊查看內容 ➔</span>
                             </div>
                         </div>`;
                     } else {
@@ -1973,9 +2023,9 @@
                         <div class="bg-white p-4 rounded-2xl border border-rose-100 mb-2 shadow-sm unsubmitted-card flex justify-between items-center">
                             <div class="flex items-center gap-2">
                                 <span class="text-xs font-black text-rose-500 bg-rose-50 px-2 py-0.5 rounded">未繳交</span>
-                                <span class="font-bold text-slate-700">${name}</span>
+                                <span class="font-bold text-slate-700">${cleanName}</span>
                             </div>
-                            <button onclick="remindHomework('${name}')" class="text-[10px] font-black text-rose-400 hover:text-rose-600 bg-rose-50 px-3 py-1.5 rounded-full transition-colors">發送提醒</button>
+                            <button onclick="remindHomework('${cleanName}')" class="text-[10px] font-black text-rose-400 hover:text-rose-600 bg-rose-50 px-3 py-1.5 rounded-full transition-colors">發送提醒</button>
                         </div>`;
                     }
                 });
@@ -2585,10 +2635,20 @@
             const hw = hwHistoryData[idx]; if (!hw) return;
             document.getElementById('hw-detail-title').innerText = `作業紀錄 - ${hw.topic}`;
             document.getElementById('hw-detail-time').innerText = `繳交時間：${hw.time}`;
-            document.getElementById('hw-detail-body').innerText = hw.reflection;
+
+            let bodyText = hw.reflection || '(無心得文字)';
+            if (hw.answers && hw.answers.length > 0) {
+                const qaText = hw.answers.map(a => `【${a.question}】\n${a.answer}`).join('\n\n');
+                bodyText = qaText + '\n\n【心得感想】\n' + bodyText;
+            }
+            document.getElementById('hw-detail-body').innerText = bodyText;
+
             const linksContainer = document.getElementById('hw-detail-links');
             if (hw.url) {
-                linksContainer.innerHTML = `<a href="${hw.url}" target="_blank" class="text-xs bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl font-bold hover:bg-indigo-100 transition-all">📄 開啟附件或雲端檔案</a>`;
+                const urls = hw.url.split(',').map(u => u.trim()).filter(Boolean);
+                linksContainer.innerHTML = urls.map((u, i) => 
+                    `<a href="${u}" target="_blank" class="text-xs bg-indigo-50 text-indigo-700 px-4 py-2 rounded-xl font-bold hover:bg-indigo-100 transition-all inline-block m-1">📄 開啟附件或雲端檔案 ${urls.length > 1 ? (i + 1) : ''}</a>`
+                ).join('');
             } else {
                 linksContainer.innerHTML = '';
             }
