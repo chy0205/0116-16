@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>崇華十六期整合管理系統</title>
+    <title>崇華十五期整合管理系統</title>
     <!-- 預先連線以加速 Google Fonts 載入 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -292,104 +292,6 @@
         .hw-q-block:last-child {
             border-bottom: none;
         }
-    
-        /* V3 D｜現代卡片風：只調整呈現，不變更 API、權限及資料處理 */
-        :root { --emerald-primary:#0d9488; --emerald-dark:#0f766e; }
-        body { background:linear-gradient(160deg,#f0fdfa 0%,#f8fafc 35%,#f5f3ff 100%); color:#1e293b; }
-        body::before { content:""; position:fixed; width:420px; height:420px; border-radius:50%; top:-260px; right:-160px; background:radial-gradient(circle,rgba(45,212,191,.16),transparent 70%); pointer-events:none; z-index:-1; }
-        header { background:rgba(255,255,255,.88)!important; border-bottom:1px solid rgba(203,213,225,.65)!important; box-shadow:0 4px 24px rgba(15,23,42,.04); }
-        header h1 { letter-spacing:-.035em; }
-        header .bg-emerald-600 { background:linear-gradient(145deg,#14b8a6,#0f766e)!important; border-radius:13px; box-shadow:0 5px 14px rgba(13,148,136,.22); }
-        main.container { max-width:1060px!important; padding:clamp(14px,3vw,32px)!important; }
-        .glass-card { background:#fff; border:1px solid #e7edf4; border-radius:26px!important; box-shadow:0 12px 36px rgba(15,23,42,.055); }
-        .glass-card:hover { box-shadow:0 16px 42px rgba(15,23,42,.075); }
-        section[id^="view-"] > .glass-card, section[id^="view-"] > .rounded-3xl { margin-bottom:20px; }
-        section[id^="view-"] h2 { letter-spacing:-.035em; line-height:1.25; }
-        .btn-primary { background:linear-gradient(135deg,#14b8a6,#0d9488)!important; box-shadow:0 8px 22px rgba(13,148,136,.2)!important; border-radius:17px!important; }
-        .btn-primary:hover:not(:disabled) { box-shadow:0 12px 28px rgba(13,148,136,.28)!important; }
-        button, input, select, textarea { transition:box-shadow .2s,border-color .2s,background .2s,transform .2s; }
-        button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, .nav-item:focus-visible { outline:3px solid rgba(20,184,166,.48); outline-offset:3px; }
-        input:not([type="checkbox"]):not([type="radio"]),select,textarea { border-radius:15px!important; }
-        .modal-content { border-radius:28px; border:1px solid #e2e8f0; }
-        .nav-bar { left:50%; right:auto; transform:translateX(-50%); width:min(100% - 24px,880px); bottom:10px; border:1px solid #e2e8f0; border-radius:24px; box-shadow:0 12px 45px rgba(15,23,42,.14); padding:9px 6px calc(env(safe-area-inset-bottom) + 9px); overflow-x:auto; scrollbar-width:none; justify-content:flex-start; }
-        .nav-bar::-webkit-scrollbar { display:none; }
-        .nav-item { flex:1 0 62px; padding:8px 5px; border-radius:16px; color:#64748b; gap:2px; font-size:.72rem; white-space:nowrap; }
-        .nav-item.active { background:#ccfbf1; color:#0f766e; transform:none; }
-        .nav-item svg { width:22px; height:22px; margin-bottom:1px; }
-        .nav-item.active svg { transform:none; }
-        .v3-welcome { padding:26px; border-radius:28px; background:linear-gradient(115deg,#0f766e,#0d9488 56%,#2dd4bf); color:white; box-shadow:0 16px 34px rgba(15,118,110,.18); margin:4px 0 22px; overflow:hidden; position:relative; }
-        .v3-welcome::after { content:""; position:absolute; width:220px; height:220px; border:45px solid rgba(255,255,255,.08); border-radius:50%; right:-85px; top:-100px; pointer-events:none; }
-        .v3-eyebrow { display:inline-block; padding:5px 11px; border-radius:999px; background:rgba(255,255,255,.16); font-size:12px; font-weight:800; letter-spacing:.06em; }
-        .v3-welcome h2 { margin:13px 0 6px; font-size:clamp(22px,3vw,30px); font-weight:900; color:white!important; }
-        .v3-welcome p { font-size:13px; color:#d9fffa; }
-        .v3-quick-title { font-size:17px; font-weight:900; color:#334155; margin:0 0 13px; }
-        .v3-quick-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin-bottom:28px; }
-        .v3-quick-card { text-align:left; background:#fff; border:1px solid #e2e8f0; border-radius:23px; padding:20px 18px; box-shadow:0 7px 20px rgba(15,23,42,.04); display:flex; flex-direction:column; gap:10px; min-height:144px; cursor:pointer; }
-        .v3-quick-card:hover { border-color:#99f6e4; transform:translateY(-3px); box-shadow:0 12px 25px rgba(15,118,110,.11); }
-        .v3-quick-icon { width:44px; height:44px; border-radius:15px; display:grid; place-items:center; font-size:22px; background:#ccfbf1; }
-        .v3-quick-card:nth-child(2) .v3-quick-icon { background:#ede9fe; }
-        .v3-quick-card:nth-child(3) .v3-quick-icon { background:#fef3c7; }
-        .v3-quick-card:nth-child(4) .v3-quick-icon { background:#dbeafe; }
-        .v3-quick-card strong { display:block; color:#0f172a; font-size:15px; }
-        .v3-quick-card small { display:block; color:#64748b; font-size:12px; line-height:1.5; }
-        #view-login,#view-register { max-width:510px; margin:28px auto 0; }
-        #view-login .glass-card,#view-register .glass-card { padding:clamp(22px,5vw,40px)!important; }
-        #view-login .glass-card::before { content:"✦  CHONG HUA 16"; display:block; text-align:center; color:#0f766e; letter-spacing:.14em; font-size:12px; font-weight:900; margin-bottom:18px; }
-        @media(max-width:640px) {
-            body { padding-bottom:110px; }
-            header { padding:12px 14px!important; }
-            header h1 { font-size:15px!important; }
-            main.container { padding:14px!important; }
-            .v3-welcome { padding:23px 20px; border-radius:23px; }
-            .v3-quick-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
-            .v3-quick-card { min-height:128px; padding:16px 14px; border-radius:19px; }
-            .nav-bar { bottom:6px; width:calc(100% - 12px); border-radius:20px; }
-            .nav-item { flex:1 0 59px; font-size:10px; }
-            .modal-content { padding:19px; border-radius:23px; }
-            section[id^="view-"] .p-8 { padding:20px!important; }
-        }
-        @media(prefers-reduced-motion:reduce) { .fade-in { animation:none; } .v3-quick-card:hover { transform:none; } }
-
-    
-        /* V3.1 管理後台與報表卡片一致化 */
-        #view-admin,#view-results,#view-questions { --v3-border:#e2e8f0; }
-        #view-admin > .flex:first-child,#view-results > .flex:first-child,#view-questions > .flex:first-child { padding:16px 4px 8px; }
-        #view-admin > .flex:first-child h2,#view-results > .flex:first-child h2,#view-questions > .flex:first-child h2 { font-size:clamp(21px,3vw,27px)!important; }
-        #admin-group-filter-container,#bonus-stats-container,#admin-homework-report-container,#quiz-config-container,
-        #view-results .grid > .glass-card,#view-results .grid > .bg-white,
-        #view-questions .glass-card { border-radius:25px!important; border:1px solid var(--v3-border); box-shadow:0 10px 30px rgba(15,23,42,.055); }
-        #bonus-stats-container { background:linear-gradient(180deg,#fff,#fbfffe); }
-        #admin-homework-report-container { background:linear-gradient(145deg,#fff,#f5f3ff); border-color:#ddd6fe; }
-        #admin-homework-report-container h3 { color:#4338ca!important; }
-        #attendance-report-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,285px),1fr)); gap:14px; }
-        #attendance-report-list > * { margin:0!important; min-width:0; border-radius:20px!important; }
-        #homework-report-list > * { border-radius:17px; }
-        #view-admin .mb-4.px-2 h3 { color:#334155!important; font-size:13px!important; letter-spacing:.06em; }
-        #view-admin button:not(.nav-item),#view-results button,#view-questions button { min-height:36px; }
-        #view-admin select,#view-results select,#view-questions select { background-color:#fff; }
-        #view-admin #quiz-config-container { background:linear-gradient(135deg,#172554,#0f172a)!important; border:1px solid #334155; }
-        #view-admin #quiz-config-container input { background:#1e293b; border:1px solid #475569!important; color:#fff; }
-        #view-admin #quiz-config-container label { color:#cbd5e1; }
-        #view-results .grid { gap:16px!important; }
-        #view-results .grid > div { min-width:0; border-radius:23px; }
-        .v3-admin-jump { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-bottom:24px; }
-        .v3-admin-jump button { display:flex; gap:11px; align-items:center; padding:15px; text-align:left; background:#fff; border:1px solid #e2e8f0; border-radius:20px; box-shadow:0 6px 18px rgba(15,23,42,.04); cursor:pointer; }
-        .v3-admin-jump button:hover { border-color:#5eead4; background:#f0fdfa; }
-        .v3-admin-jump .v3-jump-icon { display:grid; place-items:center; width:39px; height:39px; flex-shrink:0; border-radius:13px; background:#ccfbf1; font-size:20px; }
-        .v3-admin-jump button:nth-child(2) .v3-jump-icon { background:#dbeafe; }
-        .v3-admin-jump button:nth-child(3) .v3-jump-icon { background:#ede9fe; }
-        .v3-admin-jump strong { font-size:13px; color:#0f172a; display:block; }
-        .v3-admin-jump small { font-size:11px; color:#64748b; display:block; margin-top:3px; }
-        @media(max-width:640px) {
-            .v3-admin-jump { grid-template-columns:1fr; gap:9px; }
-            .v3-admin-jump button { padding:12px 14px; border-radius:17px; }
-            #view-admin #bonus-stats-container,#view-admin #admin-homework-report-container,#view-admin #quiz-config-container { padding:18px!important; }
-            #view-admin .flex.justify-between { gap:10px; flex-wrap:wrap; }
-            #view-admin #admin-sync-attendance-btn,#view-admin #admin-region-report-btn { max-width:100%; white-space:normal; }
-            #view-admin #bonus-stats-container .h-64 { height:240px; }
-            #view-results .grid { grid-template-columns:minmax(0,1fr)!important; }
-        }
-
     </style>
 </head>
 
@@ -398,7 +300,7 @@
     <header class="bg-white/80 backdrop-blur-md border-b p-4 flex justify-between items-center sticky top-0 z-50">
         <div class="flex items-center gap-2">
             <div class="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white font-bold">崇</div>
-            <h1 class="text-lg font-black text-slate-800 tracking-tight">十六期管理系統</h1>
+            <h1 class="text-lg font-black text-slate-800 tracking-tight">十五期管理系統</h1>
         </div>
         <div id="user-display" class="hidden flex items-center">
             <div class="text-right mr-3">
@@ -476,7 +378,6 @@
                         class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none"></select>
                     <select id="reg-name" disabled
                         class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none"></select>
-                    <input type="text" id="reg-code" placeholder="管理員提供的首次註冊驗證碼" autocomplete="off" class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none">
                     <input type="password" id="reg-pass" placeholder="設定密碼"
                         class="w-full p-4 rounded-2xl bg-slate-50 border border-slate-200 outline-none">
                     <input type="password" id="reg-pass-confirm" placeholder="再次確認密碼"
@@ -491,19 +392,6 @@
 
         <!-- 公告模組 -->
         <section id="view-bulletin" class="hidden-view fade-in py-6">
-    <div class="v3-welcome" aria-label="系統首頁歡迎區">
-        <span class="v3-eyebrow">CHONG HUA · 16</span>
-        <h2>每一天的學習，都值得記錄。</h2>
-        <p>從簽到、測驗到作業，常用功能一鍵抵達。</p>
-    </div>
-    <h3 class="v3-quick-title">常用功能</h3>
-    <div class="v3-quick-grid" aria-label="常用功能快捷入口">
-        <button type="button" class="v3-quick-card" onclick="switchView('attendance')"><span class="v3-quick-icon" aria-hidden="true">📍</span><span><strong>每日簽到</strong><small>查看狀態與完成簽到</small></span></button>
-        <button type="button" class="v3-quick-card" onclick="switchView('quiz')"><span class="v3-quick-icon" aria-hidden="true">📝</span><span><strong>課程測驗</strong><small>進入題目與開始作答</small></span></button>
-        <button type="button" class="v3-quick-card" onclick="switchView('homework')"><span class="v3-quick-icon" aria-hidden="true">📚</span><span><strong>繳交作業</strong><small>填寫心得與上傳附件</small></span></button>
-        <button type="button" class="v3-quick-card" onclick="switchView('results')"><span class="v3-quick-icon" aria-hidden="true">📊</span><span><strong>學習成績</strong><small>查詢測驗與歷史紀錄</small></span></button>
-    </div>
-
             <div class="flex justify-between items-center mb-6">
                 <div>
                     <h2 class="text-2xl font-black text-slate-800">最新公告</h2>
@@ -559,7 +447,7 @@
                     </div>
                 </div>
                 <button id="saveConfig"
-                    class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold text-sm shadow-lg">儲存設定（僅此裝置）</button>
+                    class="w-full bg-slate-800 text-white py-3 rounded-xl font-bold text-sm shadow-lg">儲存並加密</button>
             </div>
 
             <div class="glass-card p-6 rounded-3xl border border-white mb-6 text-center">
@@ -847,47 +735,6 @@
                 <h2 class="text-2xl font-black text-slate-800">管理儀表板</h2>
             </div>
 
-
-            <div class="v3-admin-jump" aria-label="管理區塊快速導覽">
-                <button type="button" onclick="document.getElementById('bonus-stats-container').scrollIntoView({behavior:'smooth',block:'start'})"><span class="v3-jump-icon" aria-hidden="true">📈</span><span><strong>加分統計</strong><small>查看圖表與歷次資料</small></span></button>
-                <button type="button" onclick="document.getElementById('attendance-report-list').scrollIntoView({behavior:'smooth',block:'start'})"><span class="v3-jump-icon" aria-hidden="true">📋</span><span><strong>出席報表</strong><small>查看點名與同步狀況</small></span></button>
-                <button type="button" onclick="document.getElementById('admin-homework-report-container').scrollIntoView({behavior:'smooth',block:'start'})"><span class="v3-jump-icon" aria-hidden="true">📚</span><span><strong>作業管理</strong><small>查詢主題與繳交紀錄</small></span></button>
-            </div>
-
-
-            <!-- V3.2 僅管理員使用：帳號管理 -->
-            <div id="v3-users-panel" class="hidden mb-8 bg-white rounded-3xl border border-slate-200 shadow-sm p-5 md:p-7">
-                <button type="button" id="v3-users-toggle" onclick="v3ToggleUsersPanel()" aria-expanded="false" aria-controls="v3-users-content" class="w-full flex items-center justify-between text-left gap-3"><span><strong class="text-xl text-slate-800">👥 使用者管理</strong><small class="block text-slate-500 mt-1">點選展開，搜尋、新增及同步使用者</small></span><span id="v3-users-chevron" class="text-emerald-700 font-bold">展開 ▼</span></button>
-                <div id="v3-users-content" class="hidden mt-5">
-                <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
-                    <div><h3 class="text-xl font-black text-slate-800">👥 使用者管理</h3><p class="text-sm text-slate-500 mt-1">帳號儲存於 GS，不顯示密碼。僅系統管理員可操作。</p></div>
-                    <div class="flex gap-2"><button onclick="v3LoadUsers()" class="px-4 py-2 bg-slate-100 rounded-xl font-bold text-sm">重新整理</button><button onclick="v3OpenUserForm()" class="px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm">＋ 新增帳號</button></div>
-                </div>
-                <div class="mb-4 p-4 rounded-2xl bg-emerald-50 border border-emerald-100">
-                    <h4 class="font-black text-emerald-900">📥 USERS A／B 欄批次同步</h4>
-                    <p class="text-xs text-emerald-900 mt-1">在試算表 USERS（或 Users）工作表，A 欄填組別、B 欄填姓名。僅新增 GS 沒有的帳號，絕不覆蓋既有密碼、權限或註冊日期。</p>
-                    <div class="flex flex-wrap gap-2 mt-3">
-                        <button type="button" onclick="v3PreviewABImport()" class="px-4 py-2 bg-white border border-emerald-300 text-emerald-800 rounded-xl font-bold text-sm">檢查新增名單</button>
-                        <button type="button" id="v3-import-confirm" onclick="v3ConfirmABImport()" disabled class="px-4 py-2 bg-emerald-700 text-white rounded-xl font-bold text-sm disabled:opacity-40">確認同步至 GS</button>
-                    </div>
-                    <p id="v3-import-preview" class="text-sm mt-3 text-slate-700 whitespace-pre-wrap" aria-live="polite">請先點選「檢查新增名單」。</p>
-                </div>
-                <input id="v3-user-search" type="search" oninput="v3RenderUsers()" placeholder="搜尋組別、姓名或權限" class="w-full p-3 border border-slate-200 rounded-xl bg-slate-50 mb-3">
-                <p id="v3-user-status" class="text-xs text-slate-500 mb-3" aria-live="polite"></p>
-                <div class="overflow-x-auto"><table class="w-full text-sm text-left"><thead><tr class="text-slate-500 border-b"><th class="p-3">組別</th><th class="p-3">姓名</th><th class="p-3">權限</th><th class="p-3">註冊狀態</th><th class="p-3">操作</th></tr></thead><tbody id="v3-user-rows"></tbody></table></div>
-                <div id="v3-user-editor" class="hidden mt-5 p-5 rounded-2xl border bg-slate-50">
-                    <h4 id="v3-user-form-title" class="font-black mb-3">新增帳號</h4>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        <label class="text-sm font-bold">組別<input id="v3-edit-group" maxlength="80" class="block w-full mt-1 p-3 border rounded-xl"></label>
-                        <label class="text-sm font-bold">姓名<input id="v3-edit-name" maxlength="80" class="block w-full mt-1 p-3 border rounded-xl"></label>
-                        <label class="text-sm font-bold">身分權限<select id="v3-edit-role" class="block w-full mt-1 p-3 border rounded-xl"><option value="學員">學員</option><option value="LEADER">組長</option><option value="TEACHER">老師</option><option value="發布員">發布員</option><option value="ADMIN">管理員</option></select></label>
-                        <label id="v3-new-password-label" class="text-sm font-bold">初始密碼（選填，空白則由使用者註冊）<input id="v3-edit-password" type="password" autocomplete="new-password" minlength="8" class="block w-full mt-1 p-3 border rounded-xl"></label>
-                    </div>
-                    <p class="text-xs text-slate-500 mt-2">修改姓名或組別後，舊的登入識別將失效；既有歷史紀錄不會自動改名。</p>
-                    <div class="flex gap-2 mt-4"><button onclick="v3SaveUserForm()" class="px-5 py-2 bg-emerald-600 text-white rounded-xl font-bold">儲存</button><button onclick="document.getElementById('v3-user-editor').classList.add('hidden')" class="px-5 py-2 border rounded-xl">取消</button></div>
-                </div>
-                </div>
-            </div>
             <div id="admin-group-filter-container"
                 class="hidden mb-6 bg-white p-5 rounded-3xl border shadow-sm flex items-center gap-4">
                 <span class="text-xs font-black text-slate-400 uppercase whitespace-nowrap">篩選組別</span>
@@ -1243,27 +1090,7 @@
 
     <script>
         // --- 設定與環境變數 ---
-        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxZ06Lm_lJk-A6Xs0GVFGdrtmrfA0GM-ALCuaaCCIcvK0V-5zLg27uiI70HwseSNfLCEA/exec';
-
-        // V2: central GAS request adapter. All existing fetch calls remain compatible.
-        const v2NativeFetch = window.fetch.bind(window);
-        window.fetch = function(input, init) {
-            const url = typeof input === 'string' ? input : input.url;
-            if (typeof url !== 'string' || !url.startsWith(APPS_SCRIPT_URL)) return v2NativeFetch(input,init);
-            const token = currentUser && currentUser.token;
-            const options = Object.assign({}, init || {});
-            if ((options.method || 'GET').toUpperCase() === 'POST') {
-                let body;
-                try { body = JSON.parse(options.body || '{}'); } catch (_) { body = {}; }
-                if (token) body.token = token;
-                options.body = JSON.stringify(body);
-                return v2NativeFetch(url,options);
-            }
-            const requestUrl = new URL(url);
-            if (token) requestUrl.searchParams.set('token',token);
-            return v2NativeFetch(requestUrl.toString(),options);
-        };
-
+        const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx5y9O6ZDMobGdY7qkgFDqvE6qT9ZEN4PSv0SzkIrUR3mTxKs6OLsri0w9GNT_RH_ys4A/exec';
         const SPREADSHEET_ID = '1zgooij9pB4VIYGDti8QgbNu5VQVnd4Ke6UsYQnBrfsk';
         const TEAMS_GID = '1026036029';
         const GROUP_ORDER = ['第一組', '第二組', '第三組', '第四組', '第五組', '第六組', '第七組', '第八組', '第九組', '第十組', '孟加拉', '德國', '印尼', '馬來西亞', '神州', '主領班', '特助'];
@@ -1487,7 +1314,7 @@
             }
             if (viewName === 'quiz' && currentUser) loadQuizConfigs();
             if (viewName === 'results' && currentUser) loadHistoryData();
-            if (viewName === 'admin' && currentUser) { loadAdminDashboard(true); v3InitUsersPanel(); }
+            if (viewName === 'admin' && currentUser) loadAdminDashboard(true);
             if (viewName === 'questions' && currentUser) loadQuestionsView();
             if (viewName === 'img-transfer') setupImgTransfer();
             if (viewName === 'homework') {
@@ -1571,11 +1398,11 @@
             const p = document.getElementById('reg-pass').value;
             const c = document.getElementById('reg-pass-confirm').value;
             if (p !== c) return toast('密碼確認不一致', true);
-            if (!p || p.length < 8) return toast('密碼至少需要 8 個字元', true);
+            if (!p || p.length < 4) return toast('密碼過短', true);
             const btn = document.getElementById('reg-btn');
             btn.disabled = true;
             try {
-                const res = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'register', group: g, name: n, password: p, registrationCode: document.getElementById('reg-code').value }) });
+                const res = await fetch(APPS_SCRIPT_URL, { method: 'POST', body: JSON.stringify({ action: 'register', group: g, name: n, password: p }) });
                 const result = await res.json();
                 if (result.success) { 
                     toast('註冊成功，請登入'); 
@@ -2863,12 +2690,12 @@
 
         function setupImgTransfer() {
             const tI = document.getElementById('inputToken'), rI = document.getElementById('inputRepo');
-            tI.value = sessionStorage.getItem('gh_token') || '';
+            tI.value = localStorage.getItem('gh_token') || '';
             rI.value = localStorage.getItem('gh_repo') || '';
             loadBatchHistory();
             document.getElementById('configToggle').onclick = () => document.getElementById('configPanel').classList.toggle('hidden');
             document.getElementById('saveConfig').onclick = () => {
-                sessionStorage.setItem('gh_token', tI.value.trim());
+                localStorage.setItem('gh_token', tI.value.trim());
                 localStorage.setItem('gh_repo', rI.value.trim());
                 toast("設定已儲存"); document.getElementById('configPanel').classList.add('hidden');
             };
@@ -2876,7 +2703,7 @@
             dz.onclick = () => fi.click();
             fi.onchange = (e) => { if (e.target.files.length > 0) document.getElementById('batch-selected-count').innerText = `已選 ${e.target.files.length} 個檔案`; };
             ub.onclick = async () => {
-                const t = sessionStorage.getItem('gh_token'), r = localStorage.getItem('gh_repo'), files = fi.files;
+                const t = localStorage.getItem('gh_token'), r = localStorage.getItem('gh_repo'), files = fi.files;
                 if (!t || !r || files.length === 0) return toast("資訊不全", true);
                 ub.disabled = true; document.getElementById('batch-result-container').classList.remove('hidden');
                 document.getElementById('batch-result-list').innerHTML = '';
@@ -3190,15 +3017,11 @@
             }
         }
 
-        async function initApp() {
+        function initApp() {
             const saved = localStorage.getItem('sh_user_secure');
             if (saved && saved !== "undefined") {
                 try {
-                    currentUser = JSON.parse(saved);
-                    if (!currentUser.token) throw new Error('舊版登入資訊已失效');
-                    const vr = await (await fetch(`${APPS_SCRIPT_URL}?action=validateSession`)).json();
-                    if (!vr.success) throw new Error(vr.error || '登入失效');
-                    currentUser = {...currentUser, name:vr.name, group:vr.group, role:vr.role};
+                    currentUser = JSON.parse(saved); 
                     document.getElementById('main-nav').classList.remove('hidden');
                     const ud = document.getElementById('user-display'); 
                     ud.classList.remove('hidden'); 
@@ -3219,7 +3042,6 @@
                     }
                     switchView('bulletin');
                 } catch (e) { 
-                    localStorage.removeItem('sh_user_secure'); currentUser = null;
                     fetchTeamsData();
                     switchView('login'); 
                 }
@@ -3230,144 +3052,6 @@
         }
 
         function logout() { if (confirm("確定登出？")) { localStorage.removeItem('sh_user_secure'); location.reload(); } }
-
-
-        async function v3PreviewABImport() {
-            const label=document.getElementById('v3-import-preview');
-            const btn=document.getElementById('v3-import-confirm');
-            btn.disabled=true;v3ImportPlan=null;label.textContent='正在檢查 USERS A／B 欄…';
-            try {
-                const response=await fetch(APPS_SCRIPT_URL+'?action=adminPreviewABImport');
-                const data=await response.json();
-                if(!data.success) throw Error(data.error||'預覽失敗');
-                const issues=(data.invalid?.length||0)+(data.duplicates?.length||0);
-                const lines=[
-                    '工作表：'+data.sheet,
-                    '預計新增：'+data.newCount+' 筆',
-                    'GS 已存在（跳過）：'+data.existing+' 筆',
-                    '空白列：'+data.blank+' 筆',
-                    '資料不完整列：'+(data.invalid?.join('、')||'無'),
-                    '重複資料列：'+(data.duplicates?.join('、')||'無')
-                ];
-                if(data.pending?.length) lines.push('新增預覽（最多 30 筆）：'+data.pending.map(u=>u.group+'／'+u.name).join('、'));
-                if(issues) lines.push('請先修正有問題的列，再重新檢查。');
-                label.textContent=lines.join('\n');
-                if(!issues&&data.newCount>0) {v3ImportPlan=data;btn.disabled=false;}
-            } catch(e) {label.textContent='檢查失敗：'+e.message;toast(e.message,true);}
-        }
-        async function v3ConfirmABImport() {
-            if(!v3ImportPlan||!v3ImportPlan.newCount) return;
-            if(!confirm('確定將 '+v3ImportPlan.newCount+' 筆新名單同步至 GS？既有帳號完全不覆蓋。')) return;
-            const btn=document.getElementById('v3-import-confirm');
-            btn.disabled=true;
-            try {
-                const result=await v3AdminPost({action:'adminSyncABImport'});
-                v3ImportPlan=null;
-                document.getElementById('v3-import-preview').textContent='同步完成！新增 '+result.added+' 筆，已存在跳過 '+result.skippedExisting+' 筆。既有密碼、權限及註冊資料不變。';
-                toast('名單同步完成，新增 '+result.added+' 筆');
-                await v3LoadUsers();
-            } catch(e) {toast(e.message,true);document.getElementById('v3-import-preview').textContent='同步失敗：'+e.message+'。請重新檢查名單。';}
-        }
-
-        // V3.2 使用者管理：所有操作由 GAS 驗證管理員權限。
-        let v3UsersList=[],v3EditingUser=null,v3ImportPlan=null,v3UsersLoaded=false;
-        function v3IsAdmin() {return ['ADMIN','管理員'].includes(String(currentUser?.role||'').trim().toUpperCase());}
-        function v3InitUsersPanel() {
-            const panel=document.getElementById('v3-users-panel');
-            if(!panel) return;
-            panel.classList.toggle('hidden',!v3IsAdmin());
-            // 預設收合；進入管理儀表板不自動載入全部帳號。
-        }
-        function v3ToggleUsersPanel() {
-            if(!v3IsAdmin()) return;
-            const content=document.getElementById('v3-users-content');
-            const toggle=document.getElementById('v3-users-toggle');
-            const opening=content.classList.contains('hidden');
-            content.classList.toggle('hidden',!opening);
-            toggle.setAttribute('aria-expanded',String(opening));
-            document.getElementById('v3-users-chevron').textContent=opening?'收合 ▲':'展開 ▼';
-            if(opening && !v3UsersLoaded) v3LoadUsers();
-        }
-        function v3Escape(s) {
-            return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-        }
-        async function v3LoadUsers() {
-            if(!v3IsAdmin()) return;
-            const status=document.getElementById('v3-user-status');
-            status.textContent='正在載入使用者資料…';
-            try {
-                const response=await fetch(APPS_SCRIPT_URL+'?action=adminListUsers');
-                const result=await response.json();
-                if(!result.success) throw Error(result.error||'查詢失敗');
-                v3UsersList=result.data||[];
-                v3UsersLoaded=true;
-                v3RenderUsers();
-            } catch(err) {status.textContent='讀取失敗：'+err.message;toast(err.message,true);}
-        }
-        function v3RenderUsers() {
-            const query=document.getElementById('v3-user-search').value.trim().toLocaleLowerCase();
-            const users=v3UsersList.filter(u=>[u.group,u.name,u.role].some(v=>String(v||'').toLocaleLowerCase().includes(query)));
-            document.getElementById('v3-user-status').textContent='共 '+v3UsersList.length+' 筆，符合搜尋 '+users.length+' 筆';
-            const tbody=document.getElementById('v3-user-rows');tbody.replaceChildren();
-            users.forEach(u=>{
-                const tr=document.createElement('tr');tr.className='border-b border-slate-100';
-                [u.group,u.name,u.role,u.registered?'已註冊':'尚未註冊'].forEach(v=>{
-                    const td=document.createElement('td');td.className='p-3 whitespace-nowrap';td.textContent=v;tr.appendChild(td);
-                });
-                const td=document.createElement('td');td.className='p-3 whitespace-nowrap';
-                const edit=document.createElement('button');edit.className='text-emerald-700 font-bold mr-3';edit.textContent='編輯';edit.onclick=()=>v3OpenUserForm(u);
-                const reset=document.createElement('button');reset.className='text-amber-700 font-bold';reset.textContent='重設密碼';reset.onclick=()=>v3ResetPassword(u);
-                td.append(edit,reset);tr.appendChild(td);tbody.appendChild(tr);
-            });
-        }
-        function v3OpenUserForm(user=null) {
-            v3EditingUser=user?{group:user.group,name:user.name}:null;
-            document.getElementById('v3-user-editor').classList.remove('hidden');
-            document.getElementById('v3-user-form-title').textContent=user?'編輯使用者':'新增帳號';
-            document.getElementById('v3-edit-group').value=user?.group||'';
-            document.getElementById('v3-edit-name').value=user?.name||'';
-            const roleMap={'管理員':'ADMIN','老師':'TEACHER','教師':'TEACHER','組長':'LEADER'};
-            document.getElementById('v3-edit-role').value=roleMap[user?.role]||user?.role||'學員';
-            document.getElementById('v3-edit-password').value='';
-            document.getElementById('v3-new-password-label').classList.toggle('hidden',!!user);
-            document.getElementById('v3-user-editor').scrollIntoView({behavior:'smooth',block:'center'});
-        }
-        async function v3AdminPost(payload) {
-            const response=await fetch(APPS_SCRIPT_URL,{method:'POST',body:JSON.stringify(payload)});
-            const result=await response.json();
-            if(!result.success) throw Error(result.error||'操作失敗');
-            return result;
-        }
-        async function v3SaveUserForm() {
-            const group=document.getElementById('v3-edit-group').value.trim();
-            const name=document.getElementById('v3-edit-name').value.trim();
-            const role=document.getElementById('v3-edit-role').value;
-            const password=document.getElementById('v3-edit-password').value;
-            if(!group||!name) return toast('請輸入組別及姓名',true);
-            if(!v3EditingUser&&password&&password.length<8) return toast('初始密碼至少 8 個字元',true);
-            const payload={action:v3EditingUser?'adminUpdateUser':'adminCreateUser',group,name,role};
-            if(v3EditingUser) Object.assign(payload,{oldGroup:v3EditingUser.group,oldName:v3EditingUser.name});
-            else payload.password=password;
-            if(v3EditingUser&&(group!==v3EditingUser.group||name!==v3EditingUser.name)&&!confirm('修改組別或姓名將影響登入識別，歷史紀錄不會自動改名。確定繼續？')) return;
-            try {
-                await v3AdminPost(payload);
-                document.getElementById('v3-user-editor').classList.add('hidden');
-                toast('使用者資料已儲存');
-                await v3LoadUsers();
-            } catch(err) {toast(err.message,true);}
-        }
-        async function v3ResetPassword(user) {
-            const password=prompt('請為「'+user.group+' / '+user.name+'」設定新密碼（至少 8 字元）：');
-            if(password===null) return;
-            if(password.length<8||password.length>128) return toast('密碼需為 8 至 128 字元',true);
-            if(!confirm('確定重設「'+user.name+'」的密碼？')) return;
-            try {
-                await v3AdminPost({action:'adminResetUserPassword',group:user.group,name:user.name,role:user.role,password});
-                toast('密碼已重設');
-                await v3LoadUsers();
-            } catch(err) {toast(err.message,true);}
-        }
-
         document.addEventListener('DOMContentLoaded', initApp);
     </script>
 </body>
